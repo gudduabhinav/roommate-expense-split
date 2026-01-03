@@ -136,15 +136,15 @@ export default function NewGroupPage() {
                                 key={c.name}
                                 type="button"
                                 onClick={() => setCategory(c.name)}
-                                className={`flex items-center gap-3 px-4 py-4 rounded-2xl text-sm font-bold transition-all border-2 ${category === c.name
-                                    ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-[1.05]"
+                                className={`flex items-center gap-2 px-3 py-4 rounded-2xl text-xs sm:text-sm font-bold transition-all border-2 ${category === c.name
+                                    ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-[1.02]"
                                     : "bg-transparent border-slate-50 dark:border-slate-800 text-foreground/40 hover:border-primary/20"
                                     }`}
                             >
-                                <span className={category === c.name ? "text-white" : "text-primary/60"}>
+                                <span className={`shrink-0 ${category === c.name ? "text-white" : "text-primary/60"}`}>
                                     {c.icon}
                                 </span>
-                                {c.name}
+                                <span className="truncate">{c.name}</span>
                             </button>
                         ))}
                     </div>

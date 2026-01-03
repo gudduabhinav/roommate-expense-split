@@ -178,15 +178,15 @@ export default function AddExpensePage() {
                     {/* Categories */}
                     <div className="space-y-4">
                         <label className="text-[10px] font-black uppercase tracking-widest ml-4 text-foreground/40">Category</label>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {CATEGORIES.map((cat) => (
                                 <button
                                     key={cat.id}
                                     onClick={() => setCategory(cat.id)}
-                                    className={`flex flex-col items-center gap-2 p-5 rounded-[1.5rem] transition-all border-2 ${category === cat.id ? 'bg-primary/5 border-primary text-primary scale-[1.05]' : 'bg-transparent border-slate-50 dark:border-slate-800 text-foreground/20 hover:border-primary/10'}`}
+                                    className={`flex items-center gap-3 p-4 rounded-2xl transition-all border-2 text-xs sm:text-sm font-bold ${category === cat.id ? 'bg-primary/5 border-primary text-primary scale-[1.02]' : 'bg-transparent border-slate-50 dark:border-slate-800 text-foreground/20 hover:border-primary/10'}`}
                                 >
-                                    <span className="text-3xl">{cat.icon}</span>
-                                    <span className="text-[10px] font-black uppercase tracking-tighter">{cat.label}</span>
+                                    <span className="text-2xl shrink-0">{cat.icon}</span>
+                                    <span className="truncate font-black uppercase tracking-tighter">{cat.label}</span>
                                 </button>
                             ))}
                         </div>
