@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Loader2, ArrowLeft, User, Wallet } from "lucide-react";
 import Link from "next/link";
 
-export default function AuthPage() {
+function AuthForm() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [firstName, setFirstName] = useState("");
@@ -56,6 +56,124 @@ export default function AuthPage() {
     };
 
     return (
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-12 card-shadow border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in duration-500">
+            <div className="text-center mb-10">
+                <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-[2rem] flex items-center justify-center text-white mx-auto mb-8 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
+                    <Wallet size={40} strokeWidth={2.5} />
+                </div>
+                <h1 className="text-3xl font-bold font-poppins mb-2 text-slate-900 dark:text-white">
+                    {isSignUp ? "Create Account" : "Welcome Back"}
+                </h1>
+                <p className="text-foreground/60">
+                    {isSignUp ? "Join SplitSmart today" : "Log in to your account"}
+                </p>
+            </div>
+
+            <form onSubmit={handleAuth} className="space-y-6">
+                {isSignUp && (
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold ml-2 text-slate-700 dark:text-slate-300">First Name</label>
+                            <div className="relative">
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={20} />
+                                <input
+                                    type="text"
+                                    placeholder="John"
+                                    value={firstName}
+                                    onChange={(e) => setFirstName(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-white"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold ml-2 text-slate-700 dark:text-slate-300">Last Name</label>
+                            <div className="relative">
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={20} />
+                                <input
+                                    type="text"
+                                    placeholder="Doe"
+                                    value={lastName}
+                                    onChange={(e) => setLastName(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-white"
+                                    required
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="space-y-2">
+                    <label className="text-sm font-semibold ml-2 text-slate-700 dark:text-slate-300">Email Address</label>
+                    <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={20} />
+                        <input
+                            type="email"
+                            placeholder="name@example.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-white"
+                            required
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-semibold ml-2 text-slate-700 dark:text-slate-300">Password</label>
+                    <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={20} />
+                        <input
+                            type="password"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-white"
+                            required
+                        />
+                    </div>
+                </div>
+
+                {error && (
+                    <div className="bg-danger/10 text-danger text-sm p-4 rounded-xl border border-danger/20">
+                        {error}
+                    </div>
+                )}
+
+                {success && (
+                    <div className="bg-success/10 text-success text-sm p-4 rounded-xl border border-success/20">
+                        {success}
+                    </div>
+                )}
+
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-primary text-white py-4 rounded-2xl font-bold text-lg hover:bg-primary/90 transition-all card-shadow disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                    {loading ? <Loader2 className="animate-spin" /> : isSignUp ? "Sign Up" : "Login"}
+                </button>
+            </form>
+
+            <div className="mt-8 text-center">
+                <button
+                    onClick={() => setIsSignUp(!isSignUp)}
+                    className="text-primary font-semibold hover:underline"
+                >
+                    {isSignUp ? "Already have an account? Login" : "Don't have an account? Sign Up"}
+                </button>
+            </div>
+
+            <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
+                <p className="text-sm text-foreground/40 px-4">
+                    By continuing, you agree to SplitSmart's Terms of Service and Privacy Policy.
+                </p>
+            </div>
+        </div>
+    );
+}
+
+export default function AuthPage() {
+    return (
         <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
             {/* Background Orbs */}
             <div className="absolute top-0 left-0 w-full h-full -z-10 overflow-hidden">
@@ -70,119 +188,14 @@ export default function AuthPage() {
                 <ArrowLeft size={24} />
             </Link>
 
-            <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-12 card-shadow border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in duration-500">
-                <div className="text-center mb-10">
-                    <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-[2rem] flex items-center justify-center text-white mx-auto mb-8 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
-                        <Wallet size={40} strokeWidth={2.5} />
-                    </div>
-                    <h1 className="text-3xl font-bold font-poppins mb-2">
-                        {isSignUp ? "Create Account" : "Welcome Back"}
-                    </h1>
-                    <p className="text-foreground/60">
-                        {isSignUp ? "Join SplitSmart today" : "Log in to your account"}
-                    </p>
+            <Suspense fallback={
+                <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] p-12 card-shadow border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center space-y-4">
+                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                    <p className="text-foreground/40 font-bold uppercase tracking-widest text-xs">Preparing Login...</p>
                 </div>
-
-                <form onSubmit={handleAuth} className="space-y-6">
-                    {isSignUp && (
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold ml-2">First Name</label>
-                                <div className="relative">
-                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={20} />
-                                    <input
-                                        type="text"
-                                        placeholder="John"
-                                        value={firstName}
-                                        onChange={(e) => setFirstName(e.target.value)}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold ml-2">Last Name</label>
-                                <div className="relative">
-                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={20} />
-                                    <input
-                                        type="text"
-                                        placeholder="Doe"
-                                        value={lastName}
-                                        onChange={(e) => setLastName(e.target.value)}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold ml-2">Email Address</label>
-                        <div className="relative">
-                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={20} />
-                            <input
-                                type="email"
-                                placeholder="name@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold ml-2">Password</label>
-                        <div className="relative">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={20} />
-                            <input
-                                type="password"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    {error && (
-                        <div className="bg-danger/10 text-danger text-sm p-4 rounded-xl border border-danger/20">
-                            {error}
-                        </div>
-                    )}
-
-                    {success && (
-                        <div className="bg-success/10 text-success text-sm p-4 rounded-xl border border-success/20">
-                            {success}
-                        </div>
-                    )}
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-primary text-white py-4 rounded-2xl font-bold text-lg hover:bg-primary/90 transition-all card-shadow disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                        {loading ? <Loader2 className="animate-spin" /> : isSignUp ? "Sign Up" : "Login"}
-                    </button>
-                </form>
-
-                <div className="mt-8 text-center">
-                    <button
-                        onClick={() => setIsSignUp(!isSignUp)}
-                        className="text-primary font-semibold hover:underline"
-                    >
-                        {isSignUp ? "Already have an account? Login" : "Don't have an account? Sign Up"}
-                    </button>
-                </div>
-
-                <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
-                    <p className="text-sm text-foreground/40 px-4">
-                        By continuing, you agree to SplitSmart's Terms of Service and Privacy Policy.
-                    </p>
-                </div>
-            </div>
+            }>
+                <AuthForm />
+            </Suspense>
         </div>
     );
 }
