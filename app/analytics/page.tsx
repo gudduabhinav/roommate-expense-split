@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Target, BrainCircuit, Sparkles, BarChart3, PieChart } from "lucide-react";
+import { Target, Zap, Sparkles, BarChart3, PieChart } from "lucide-react";
 
 export default function AnalyticsPage() {
     const [period, setPeriod] = useState("Monthly");
@@ -43,7 +43,7 @@ export default function AnalyticsPage() {
                         <div className="relative z-10 space-y-6">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
-                                    <BrainCircuit size={24} />
+                                    <Zap size={24} />
                                 </div>
                                 <span className="font-bold font-poppins">AI Insights</span>
                             </div>
