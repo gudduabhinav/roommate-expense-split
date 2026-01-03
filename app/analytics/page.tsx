@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingUp, Target, BrainCircuit, Sparkles, Loader2, BarChart3, PieChart } from "lucide-react";
+import { Target, BrainCircuit, Sparkles, BarChart3, PieChart } from "lucide-react";
 
 export default function AnalyticsPage() {
     const [period, setPeriod] = useState("Monthly");
@@ -26,7 +26,6 @@ export default function AnalyticsPage() {
                 </div>
             </div>
 
-            {/* Empty State / Coming Soon */}
             <div className="grid lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 bg-white dark:bg-slate-800 p-12 rounded-[3rem] card-shadow border border-slate-50 dark:border-slate-700 flex flex-col items-center justify-center text-center space-y-6">
                     <div className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center text-primary/20">
