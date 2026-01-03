@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import { Users, CheckCircle2, Loader2, ArrowRight, ShieldAlert, Sparkles } from "lucide-react";
+import { Users, CheckCircle2, Loader2, ArrowRight, ShieldAlert, Sparkles, LogIn } from "lucide-react";
 import Link from "next/link";
 
 export default function JoinGroupPage() {
@@ -14,27 +14,41 @@ export default function JoinGroupPage() {
     const [joining, setJoining] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [alreadyMember, setAlreadyMember] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        async function checkSession() {
+            const { data: { session } } = await supabase.auth.getSession();
+            setIsLoggedIn(!!session);
+        }
+        checkSession();
+    }, []);
 
     useEffect(() => {
         async function fetchGroupByInvite() {
+            if (!inviteCode) return;
             setLoading(true);
+            setError(null);
+
             try {
-                // 1. Fetch group
+                // 1. Fetch group - using case-insensitive check if possible, or exact match
+                const cleanedCode = Array.isArray(inviteCode) ? inviteCode[0].toUpperCase() : inviteCode.toUpperCase();
+
                 const { data: groupData, error: groupError } = await supabase
                     .from('groups')
                     .select('*')
-                    .eq('invite_code', inviteCode)
+                    .eq('invite_code', cleanedCode)
                     .single();
 
                 if (groupError || !groupData) {
-                    setError("Invalid invite link. Please check the code and try again.");
+                    setError("Invalid invite link or the circle was deleted. Please check the code and try again.");
                     setLoading(false);
                     return;
                 }
 
                 setGroup(groupData);
 
-                // 2. Check membership
+                // 2. Check membership if logged in
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
                     const { data: memberData } = await supabase
@@ -42,32 +56,34 @@ export default function JoinGroupPage() {
                         .select('*')
                         .eq('group_id', groupData.id)
                         .eq('user_id', user.id)
-                        .single();
+                        .maybeSingle();
 
                     if (memberData) {
                         setAlreadyMember(true);
                     }
                 }
             } catch (err: any) {
-                setError(err.message);
+                console.error("Join Error:", err);
+                setError("Something went wrong while verifying this invite.");
             } finally {
                 setLoading(false);
             }
         }
         fetchGroupByInvite();
-    }, [inviteCode]);
+    }, [inviteCode, isLoggedIn]);
 
     const handleJoin = async () => {
+        if (!isLoggedIn) {
+            router.push(`/auth?redirect=/join/${inviteCode}`);
+            return;
+        }
+
         setJoining(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                // Redirect to login but keep the invite code
-                router.push(`/auth?redirect=/join/${inviteCode}`);
-                return;
-            }
+            if (!user) throw new Error("Authentication failed");
 
-            // Join the group
+            // Join logic
             const { error: joinError } = await supabase
                 .from('group_members')
                 .insert([{
@@ -76,11 +92,18 @@ export default function JoinGroupPage() {
                     role: 'member'
                 }]);
 
-            if (joinError) throw joinError;
+            if (joinError) {
+                // Check if error is because they are already a member (concurrency check)
+                if (joinError.code === '23505') {
+                    setAlreadyMember(true);
+                } else {
+                    throw joinError;
+                }
+            }
 
             router.push(`/group/${group.id}`);
         } catch (err: any) {
-            alert(err.message);
+            alert("Failed to join: " + err.message);
         } finally {
             setJoining(false);
         }
@@ -100,84 +123,100 @@ export default function JoinGroupPage() {
 
     if (error) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center space-y-8">
-                <div className="w-24 h-24 bg-danger/10 text-danger rounded-[2rem] flex items-center justify-center rotate-12">
+            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center space-y-8 relative overflow-hidden">
+                <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-danger/5 rounded-full blur-3xl" />
+                <div className="w-24 h-24 bg-danger/10 text-danger rounded-[2rem] flex items-center justify-center rotate-12 relative z-10">
                     <ShieldAlert size={48} />
                 </div>
-                <div className="space-y-4">
-                    <h1 className="text-4xl font-bold font-poppins">Invite Error</h1>
-                    <p className="text-foreground/40 max-w-sm mx-auto">{error}</p>
+                <div className="space-y-4 relative z-10">
+                    <h1 className="text-4xl font-bold font-poppins text-slate-900 dark:text-white">Invite Error</h1>
+                    <p className="text-foreground/40 max-w-sm mx-auto font-medium">{error}</p>
                 </div>
-                <Link href="/dashboard" className="bg-slate-100 dark:bg-slate-800 px-8 py-4 rounded-2xl font-bold text-foreground/60 hover:text-primary transition-all">
-                    Back to Dashboard
+                <Link href="/dashboard" className="bg-slate-200 dark:bg-slate-800 px-10 py-5 rounded-[1.5rem] font-bold text-foreground/60 hover:text-primary hover:bg-primary/10 transition-all relative z-10 uppercase tracking-widest text-xs">
+                    Return Dashboard
                 </Link>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
-            {/* Background Decorations */}
-            <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-secondary/10 rounded-full blur-3xl" />
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden bg-slate-50 dark:bg-slate-950">
+            {/* Ambient Background */}
+            <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] opacity-40" />
+            <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-secondary/10 rounded-full blur-[120px] opacity-40" />
 
-            <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[3.5rem] p-10 md:p-14 card-shadow border border-slate-100 dark:border-slate-800 text-center space-y-10 relative z-10 animate-in fade-in zoom-in duration-700">
+            <div className="w-full max-w-md bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-[3.5rem] p-10 md:p-14 card-shadow border border-white dark:border-slate-800 text-center space-y-10 relative z-10 animate-in fade-in zoom-in duration-700">
                 <div className="space-y-6">
-                    <div className="w-24 h-24 bg-gradient-to-br from-primary to-secondary rounded-[2.5rem] flex items-center justify-center text-white mx-auto shadow-2xl shadow-primary/30 -rotate-3 hover:rotate-0 transition-transform duration-500">
+                    <div className="w-24 h-24 bg-gradient-to-br from-primary to-secondary rounded-[2.5rem] flex items-center justify-center text-white mx-auto shadow-2xl shadow-primary/40 -rotate-3 hover:rotate-0 transition-transform duration-500 ring-8 ring-primary/5">
                         <Users size={48} strokeWidth={2.5} />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         <div className="flex items-center justify-center gap-2">
-                            <Sparkles size={16} className="text-primary" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">New Invitation</span>
+                            <Sparkles size={16} className="text-primary animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">New Circle Invite</span>
                         </div>
-                        <h1 className="text-4xl font-bold font-poppins tracking-tight">Join {group.name}</h1>
-                        <p className="text-foreground/40 text-sm">You've been invited to join this expense circle.</p>
+                        <h1 className="text-4xl font-black font-poppins tracking-tight text-slate-900 dark:text-white">Join {group.name}</h1>
+                        <p className="text-foreground/40 text-sm font-medium">Click below to participate in this circle.</p>
                     </div>
                 </div>
 
-                <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-4">
+                <div className="p-8 bg-slate-50 dark:bg-slate-800/40 rounded-[2.5rem] border border-slate-100 dark:border-slate-800/50 space-y-6">
                     <div className="flex justify-between items-center text-left">
                         <div>
-                            <p className="text-[9px] font-black uppercase text-foreground/30 tracking-widest">Category</p>
+                            <p className="text-[10px] font-black uppercase text-foreground/20 tracking-widest mb-1">Circle Category</p>
                             <p className="font-bold text-lg">{group.category || 'General'}</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[9px] font-black uppercase text-foreground/30 tracking-widest">Code</p>
-                            <p className="font-bold text-lg font-mono">{group.invite_code}</p>
+                            <p className="text-[10px] font-black uppercase text-foreground/20 tracking-widest mb-1">Invite Code</p>
+                            <p className="font-bold text-lg font-mono text-primary">{group.invite_code}</p>
                         </div>
                     </div>
                 </div>
 
-                {alreadyMember ? (
+                {isLoggedIn === false ? (
                     <div className="space-y-6">
-                        <div className="p-5 bg-success/10 rounded-2xl border border-success/20 flex items-center gap-4 text-left">
-                            <CheckCircle2 size={24} className="text-success shrink-0" />
-                            <p className="text-sm font-bold text-success/80">You are already a member of this circle.</p>
+                        <div className="p-6 bg-amber-50 dark:bg-amber-900/10 rounded-3xl border border-amber-200 dark:border-amber-800/50 text-left">
+                            <p className="text-sm font-bold text-amber-800 dark:text-amber-400">Login Required</p>
+                            <p className="text-xs text-amber-700/60 dark:text-amber-500/60">Please log in to your account to join this circle.</p>
+                        </div>
+                        <button
+                            onClick={handleJoin}
+                            className="w-full bg-primary text-white py-6 rounded-[2.5rem] font-black text-xl hover:bg-primary/90 transition-all card-shadow flex items-center justify-center gap-4 shadow-xl shadow-primary/30"
+                        >
+                            Log in & Join <LogIn size={24} />
+                        </button>
+                    </div>
+                ) : alreadyMember ? (
+                    <div className="space-y-6">
+                        <div className="p-6 bg-success/10 rounded-3xl border border-success/20 flex items-center gap-4 text-left">
+                            <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center shrink-0">
+                                <CheckCircle2 size={24} className="text-success" />
+                            </div>
+                            <p className="text-sm font-bold text-success/80">You're already in this circle!</p>
                         </div>
                         <Link
                             href={`/group/${group.id}`}
-                            className="w-full bg-primary text-white py-6 rounded-[2rem] font-bold text-xl hover:bg-primary/90 transition-all card-shadow flex items-center justify-center gap-3 shadow-lg shadow-primary/30"
+                            className="w-full bg-primary text-white py-6 rounded-[2.5rem] font-black text-xl hover:bg-primary/90 transition-all card-shadow flex items-center justify-center gap-4 shadow-xl shadow-primary/30"
                         >
-                            Go to Circle <ArrowRight size={24} />
+                            Go to Dashboard <ArrowRight size={24} />
                         </Link>
                     </div>
                 ) : (
                     <button
                         onClick={handleJoin}
                         disabled={joining}
-                        className="w-full bg-primary text-white py-6 rounded-[2rem] font-bold text-xl hover:bg-primary/90 transition-all card-shadow disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]"
+                        className="w-full bg-primary text-white py-6 rounded-[2.5rem] font-black text-xl hover:bg-primary/90 transition-all card-shadow disabled:opacity-50 flex items-center justify-center gap-4 shadow-xl shadow-primary/30 active:scale-95"
                     >
                         {joining ? <Loader2 className="animate-spin" size={24} /> : (
                             <>
-                                Join Circle <ArrowRight size={24} />
+                                Accept & Join <CheckCircle2 size={24} />
                             </>
                         )}
                     </button>
                 )}
 
                 <Link href="/dashboard" className="block text-[10px] font-black uppercase tracking-widest text-foreground/20 hover:text-primary transition-colors">
-                    Decline & Return Home
+                    No thanks, return home
                 </Link>
             </div>
         </div>

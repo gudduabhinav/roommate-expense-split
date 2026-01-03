@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { Users, Plus, Search, MoreVertical, ArrowUpRight, ArrowDownLeft, Filter, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
 export default function GroupsPage() {
+    const router = useRouter();
     const [groups, setGroups] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -77,19 +79,39 @@ export default function GroupsPage() {
                 </div>
             </div>
 
-            {/* Search & Filter */}
-            <div className="flex gap-4">
+            {/* Search & Manual Join */}
+            <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-grow">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={20} />
                     <input
                         type="text"
-                        placeholder="Search groups..."
+                        placeholder="Search your circles..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full bg-white dark:bg-slate-800 border-none rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all outline-none card-shadow"
                     />
                 </div>
-                <button className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-50 dark:border-slate-700 text-foreground/60 hover:text-primary transition-colors card-shadow">
+
+                {/* Manual Join Box */}
+                <div className="flex gap-2 bg-white dark:bg-slate-800 p-2 rounded-[1.5rem] card-shadow border border-slate-100 dark:border-slate-700">
+                    <input
+                        type="text"
+                        placeholder="Join by Code (X8Y2)"
+                        id="manualJoinCode"
+                        className="bg-transparent border-none outline-none px-4 font-mono font-bold uppercase w-44 text-sm focus:ring-0"
+                    />
+                    <button
+                        onClick={() => {
+                            const code = (document.getElementById('manualJoinCode') as HTMLInputElement).value;
+                            if (code) router.push(`/join/${code.toUpperCase().trim()}`);
+                        }}
+                        className="bg-primary text-white px-6 py-2 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-primary/90 transition-all shadow-md active:scale-95"
+                    >
+                        Join
+                    </button>
+                </div>
+
+                <button className="hidden md:block bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-50 dark:border-slate-700 text-foreground/60 hover:text-primary transition-colors card-shadow">
                     <Filter size={20} />
                 </button>
             </div>
@@ -103,11 +125,8 @@ export default function GroupsPage() {
                         </div>
                         <div className="space-y-1 px-6">
                             <h3 className="text-xl font-bold font-poppins">No groups yet</h3>
-                            <p className="text-foreground/40 max-w-xs">Create your first group to start splitting expenses with friends!</p>
+                            <p className="text-foreground/40 max-w-xs">Create your first group or join one using a code!</p>
                         </div>
-                        <button className="bg-primary text-white px-8 py-3 rounded-2xl font-bold hover:scale-105 transition-transform card-shadow">
-                            Let's Start!
-                        </button>
                     </div>
                 ) : (
                     <>
@@ -118,7 +137,7 @@ export default function GroupsPage() {
                                 className="group bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-700 hover:scale-[1.02] transition-all block relative overflow-hidden"
                             >
                                 <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <MoreVertical className="text-foreground/20" />
+                                    < MoreVertical className="text-foreground/20" />
                                 </div>
 
                                 <div className="flex items-start gap-4 mb-6">
@@ -160,7 +179,7 @@ export default function GroupsPage() {
                                                 </div>
                                             ))}
                                         </div>
-                                        <span className="text-xs font-medium text-foreground/40">Join now</span>
+                                        <span className="text-xs font-medium text-foreground/40">Open Details</span>
                                     </div>
                                 </div>
                             </Link>

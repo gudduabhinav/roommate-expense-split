@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Loader2, ArrowLeft, User, Wallet } from "lucide-react";
 import Link from "next/link";
 
@@ -16,6 +16,8 @@ export default function AuthPage() {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirectUrl = searchParams.get("redirect") || "/dashboard";
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -44,7 +46,7 @@ export default function AuthPage() {
                     password,
                 });
                 if (error) throw error;
-                router.push("/dashboard");
+                router.push(redirectUrl);
             }
         } catch (err: any) {
             setError(err.message);
