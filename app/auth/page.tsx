@@ -63,12 +63,9 @@ export default function AuthPage() {
 
             <Link
                 href="/"
-                className="absolute top-8 left-8 flex items-center gap-2 group transition-all"
+                className="absolute top-8 left-8 p-3 bg-white dark:bg-slate-800 rounded-full shadow-lg text-foreground/60 hover:text-primary transition-all hover:scale-110 active:scale-95"
             >
-                <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center text-white shadow-md group-hover:rotate-6 transition-transform">
-                    <Wallet size={18} strokeWidth={2.5} />
-                </div>
-                <span className="font-bold font-poppins text-primary opacity-60 group-hover:opacity-100 transition-opacity">SplitSmart</span>
+                <ArrowLeft size={24} />
             </Link>
 
             <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-12 card-shadow border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in duration-500">
