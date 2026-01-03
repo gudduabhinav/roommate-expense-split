@@ -35,7 +35,8 @@
   --color-danger: var(--danger);
   
   --border-radius-xl: var(--radius);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui;
+  --font-heading: var(--font-poppins), sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {

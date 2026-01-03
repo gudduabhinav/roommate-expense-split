@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Loader2, ArrowLeft, User } from "lucide-react";
+import { Mail, Lock, Loader2, ArrowLeft, User, Wallet } from "lucide-react";
 import Link from "next/link";
 
 export default function AuthPage() {
@@ -70,8 +70,8 @@ export default function AuthPage() {
 
             <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-12 card-shadow border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in duration-500">
                 <div className="text-center mb-10">
-                    <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white font-bold text-3xl mx-auto mb-6 card-shadow">
-                        S
+                    <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-[2rem] flex items-center justify-center text-white mx-auto mb-8 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
+                        <Wallet size={40} strokeWidth={2.5} />
                     </div>
                     <h1 className="text-3xl font-bold font-poppins mb-2">
                         {isSignUp ? "Create Account" : "Welcome Back"}

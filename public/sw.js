@@ -1,21 +1,23 @@
-const CACHE_NAME = 'splitsmart-v1';
-const ASSETS = [
-    '/',
-    '/manifest.json',
-    '/icons/icon-512x512.png',
-    '/hero-illustration.png',
-];
-
 self.addEventListener('install', (event) => {
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    return caches.delete(cacheName);
+                })
+            );
+        }).then(() => {
+            return self.clients.claim();
+        }).then(() => {
+            return self.registration.unregister();
+        })
     );
 });
 
 self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        caches.match(event.request).then((response) => {
-            return response || fetch(event.request);
-        })
-    );
+    // Do nothing, let it pass through
 });
