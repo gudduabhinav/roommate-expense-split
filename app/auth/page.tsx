@@ -46,6 +46,7 @@ function AuthForm() {
                     password,
                 });
                 if (error) throw error;
+                router.refresh();
                 router.push(redirectUrl);
             }
         } catch (err: any) {
