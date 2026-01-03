@@ -4,6 +4,7 @@ import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, MoreHorizontal, Users as Use
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { NotificationBell } from "@/components/common/notification-bell";
 
 export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
@@ -56,35 +57,44 @@ export default function DashboardPage() {
         <div className="px-2 py-4 md:px-10 md:py-10 space-y-10 text-foreground">
             {/* Header */}
             <div className="flex justify-between items-center px-1 md:px-0">
-                <div>
-                    <h1 className="text-3xl font-bold font-poppins">Dashboard</h1>
-                    <p className="text-foreground/50">Welcome back, {user?.first_name}! 👋</p>
+                <div className="flex items-center gap-6">
+                    <Link href="/profile" className="w-12 h-12 rounded-2xl bg-slate-200 overflow-hidden card-shadow hover:scale-105 transition-transform flex items-center justify-center border-2 border-white dark:border-slate-800">
+                        <img src={user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.first_name || 'User'}`} alt="profile" />
+                    </Link>
+                    <div>
+                        <h1 className="text-xl md:text-3xl font-bold font-poppins text-slate-900 dark:text-white leading-none">Dashboard</h1>
+                        <p className="text-foreground/40 text-xs md:text-sm font-medium mt-1">Hello, {user?.first_name} 👋</p>
+                    </div>
                 </div>
-                <Link href="/profile" className="w-12 h-12 rounded-2xl bg-slate-200 overflow-hidden card-shadow hover:scale-105 transition-transform flex items-center justify-center border-2 border-white dark:border-slate-800">
-                    <img src={user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.first_name || 'User'}`} alt="profile" />
-                </Link>
+
+                <div className="flex items-center gap-3">
+                    <NotificationBell />
+                    <button className="hidden sm:flex p-3 bg-white dark:bg-slate-800 rounded-2xl card-shadow border border-slate-50 dark:border-slate-700 hover:scale-105 transition-transform text-foreground/40">
+                        <BarChart3 size={24} />
+                    </button>
+                </div>
             </div>
 
             {/* Balance Card */}
             <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-primary p-6 md:p-8 rounded-[2.5rem] text-white card-shadow relative overflow-hidden group">
+                <div className="bg-primary p-7 md:p-8 rounded-[2.5rem] md:rounded-[3rem] text-white card-shadow relative overflow-hidden group shadow-2xl shadow-primary/30">
                     <div className="absolute top-[-10%] right-[-10%] w-48 h-48 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700" />
                     <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                         <div className="flex justify-between items-start">
                             <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md">
                                 <Wallet size={24} />
                             </div>
-                            <span className="bg-white/20 px-4 py-1 rounded-full text-xs font-medium backdrop-blur-md">Total Balance</span>
+                            <span className="bg-white/20 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest backdrop-blur-md">Total Balance</span>
                         </div>
                         <div>
-                            <p className="text-white/70 text-sm mb-1 uppercase tracking-wider font-semibold">Net Balance</p>
-                            <h2 className="text-5xl font-bold font-poppins">₹0</h2>
+                            <p className="text-white/70 text-[10px] mb-1 uppercase tracking-[0.2em] font-black">Net Balance</p>
+                            <h2 className="text-5xl md:text-6xl font-bold font-poppins">₹0</h2>
                         </div>
                         <div className="flex gap-4">
-                            <Link href="/add-expense" className="flex-grow bg-white text-primary py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+                            <Link href="/add-expense" className="flex-grow bg-white text-primary py-4.5 rounded-[1.5rem] font-bold flex items-center justify-center gap-2 hover:bg-slate-50 transition-all active:scale-95 shadow-lg">
                                 <Plus size={20} /> Add Expense
                             </Link>
-                            <Link href="/settle" className="flex-grow bg-white/20 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 backdrop-blur-md hover:bg-white/30 transition-colors">
+                            <Link href="/settle" className="flex-grow bg-white/20 text-white py-4.5 rounded-[1.5rem] font-bold flex items-center justify-center gap-2 backdrop-blur-md hover:bg-white/30 transition-all active:scale-95">
                                 Settle Up
                             </Link>
                         </div>
@@ -92,22 +102,28 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] card-shadow border border-slate-50 dark:border-slate-700 flex flex-col justify-between opacity-50">
+                    <div className="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-800 flex flex-col justify-between opacity-50 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <ArrowUpRight size={64} />
+                        </div>
                         <div className="w-12 h-12 bg-success/10 text-success rounded-2xl flex items-center justify-center">
                             <ArrowUpRight size={24} />
                         </div>
-                        <div>
-                            <p className="text-foreground/40 text-[10px] font-bold uppercase tracking-wider mb-1 text-success/60">Coming In</p>
-                            <p className="text-2xl font-bold text-success font-poppins">₹0</p>
+                        <div className="space-y-1">
+                            <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest">Coming In</p>
+                            <p className="text-2xl md:text-3xl font-bold text-success font-poppins">₹0</p>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] card-shadow border border-slate-50 dark:border-slate-700 flex flex-col justify-between opacity-50">
+                    <div className="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-800 flex flex-col justify-between opacity-50 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <ArrowDownLeft size={64} />
+                        </div>
                         <div className="w-12 h-12 bg-danger/10 text-danger rounded-2xl flex items-center justify-center">
                             <ArrowDownLeft size={24} />
                         </div>
-                        <div>
-                            <p className="text-foreground/40 text-[10px] font-bold uppercase tracking-wider mb-1 text-danger/60">Going Out</p>
-                            <p className="text-2xl font-bold text-danger font-poppins">₹0</p>
+                        <div className="space-y-1">
+                            <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest">Going Out</p>
+                            <p className="text-2xl md:text-3xl font-bold text-danger font-poppins">₹0</p>
                         </div>
                     </div>
                 </div>
@@ -115,38 +131,48 @@ export default function DashboardPage() {
 
             {/* Groups Section */}
             <div className="space-y-6">
-                <div className="flex justify-between items-center px-1 md:px-0">
-                    <h2 className="text-2xl font-bold font-poppins">Your Groups</h2>
-                    <Link href="/groups" className="text-primary font-semibold text-sm hover:underline">View All</Link>
+                <div className="flex justify-between items-end px-2 md:px-0">
+                    <div className="space-y-1">
+                        <h2 className="text-2xl font-bold font-poppins text-slate-900 dark:text-white">Active Circles</h2>
+                        <p className="text-foreground/40 text-xs font-medium">Your most recent groups</p>
+                    </div>
+                    <Link href="/groups" className="text-primary font-black text-[10px] uppercase tracking-widest hover:underline py-2">View All</Link>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-6">
                     {groups.length === 0 ? (
-                        <div className="col-span-full py-12 bg-white/50 dark:bg-slate-800/50 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-center space-y-4">
-                            <p className="text-foreground/40 font-bold uppercase tracking-widest text-xs">No entries found</p>
-                            <Link href="/groups/new" className="text-primary font-bold hover:underline">Create a group now</Link>
+                        <div className="col-span-full py-20 bg-white/40 dark:bg-slate-800/40 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-center space-y-6">
+                            <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary">
+                                <UsersIcon size={40} />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-foreground/40 font-bold uppercase tracking-widest text-xs">No entries found</p>
+                                <Link href="/groups/new" className="text-primary font-bold hover:underline block pt-2">Create a group now</Link>
+                            </div>
                         </div>
                     ) : (
                         groups.map((group) => (
-                            <Link key={group.id} href={`/group/${group.id}`} className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] card-shadow border border-slate-50 dark:border-slate-700 hover:scale-[1.02] transition-transform block">
+                            <Link key={group.id} href={`/group/${group.id}`} className="bg-white dark:bg-slate-800 p-7 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-800 hover:scale-[1.02] transition-all block group hover:border-primary/20">
                                 <div className="flex justify-between items-start mb-6">
-                                    <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center">
-                                        <UsersIcon size={24} />
+                                    <div className="w-14 h-14 bg-primary/10 text-primary rounded-[1.5rem] flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+                                        <UsersIcon size={28} />
                                     </div>
-                                    <button className="text-foreground/20 hover:text-foreground/40 transition-colors">
+                                    <button className="text-foreground/10 hover:text-foreground/30 transition-colors">
                                         <MoreHorizontal />
                                     </button>
                                 </div>
-                                <h3 className="text-lg font-bold mb-1 font-poppins">{group.name}</h3>
-                                <p className="text-foreground/40 text-xs mb-4">{group.members?.[0]?.count || 1} members</p>
+                                <h3 className="text-xl font-bold mb-1 font-poppins text-slate-900 dark:text-white truncate">{group.name}</h3>
+                                <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest mb-6">
+                                    {group.members?.[0]?.count || 1} members attached
+                                </p>
 
-                                <div className="pt-4 border-t border-slate-50 dark:border-slate-700 flex justify-between items-center">
-                                    <p className="text-xs font-bold text-foreground/40">
-                                        Active recently
+                                <div className="pt-5 border-t border-slate-50 dark:border-slate-800 flex justify-between items-center group-hover:border-primary/10 transition-colors">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-foreground/20">
+                                        Activity Detected
                                     </p>
-                                    <div className="flex -space-x-2">
+                                    <div className="flex -space-x-2.5">
                                         {[1, 2].map((i) => (
-                                            <div key={i} className="w-6 h-6 rounded-full border-2 border-white dark:border-slate-800 bg-slate-200 flex items-center justify-center text-[8px] font-bold text-foreground/20 italic">
+                                            <div key={i} className="w-7 h-7 rounded-full border-2 border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-[10px] font-bold text-foreground/10 italic">
                                                 ?
                                             </div>
                                         ))}
@@ -156,28 +182,28 @@ export default function DashboardPage() {
                         ))
                     )}
 
-                    <Link href="/groups/new" className="border-2 border-dashed border-slate-200 dark:border-slate-700 p-6 rounded-[2rem] flex flex-col items-center justify-center gap-2 text-foreground/40 hover:text-primary hover:border-primary/40 transition-all hover:bg-primary/5">
-                        <div className="w-12 h-12 rounded-full border-2 border-current flex items-center justify-center transition-transform hover:scale-110">
-                            <Plus size={24} />
+                    <Link href="/groups/new" className="border-2 border-dashed border-slate-200 dark:border-slate-700/50 p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-foreground/20 hover:text-primary hover:border-primary/40 transition-all hover:bg-primary/5 min-h-[220px]">
+                        <div className="w-16 h-16 rounded-[1.5rem] border-2 border-current flex items-center justify-center transition-transform hover:scale-110">
+                            <Plus size={32} />
                         </div>
-                        <span className="font-bold">Create Group</span>
+                        <span className="font-black text-[10px] uppercase tracking-widest">Register Circle</span>
                     </Link>
                 </div>
             </div>
 
             {/* Quick Insights (Placeholder) */}
-            <div className="bg-gradient-to-r from-secondary to-primary p-8 rounded-[2.5rem] text-white card-shadow flex items-center justify-between overflow-hidden relative">
-                <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-                <div className="relative z-10 space-y-2">
-                    <p className="text-white/70 text-sm font-medium">Smart AI Insight ✨</p>
-                    <h3 className="text-xl font-bold font-poppins transition-all group-hover:translate-x-1">Ready to start splitting?</h3>
-                    <p className="text-white/80 text-sm">Add an expense to see your spending patterns here.</p>
+            <div className="bg-gradient-to-r from-secondary to-primary p-10 rounded-[3rem] text-white card-shadow flex items-center justify-between overflow-hidden relative shadow-2xl shadow-primary/20">
+                <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl opacity-50" />
+                <div className="relative z-10 space-y-3">
+                    <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.3em]">Smart Insight Engine ✨</p>
+                    <h3 className="text-2xl font-bold font-poppins">Ready to settle up?</h3>
+                    <p className="text-white/80 text-sm max-w-md">Your spending habits will appear here once you record your first group expense.</p>
                 </div>
-                <div className="hidden md:block relative z-10">
-                    <BarChart3 size={64} className="text-white/20" />
+                <div className="hidden lg:block relative z-10 opacity-20">
+                    <BarChart3 size={100} />
                 </div>
             </div>
-            <div className="h-20 md:hidden" /> {/* Navigation Spacer */}
+            <div className="h-20 md:hidden" />
         </div>
     );
 }
