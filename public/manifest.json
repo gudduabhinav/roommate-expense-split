@@ -1,17 +1,25 @@
 {
-  "name": "SplitSmart - Roommate Expense Splitter",
+  "name": "SplitSmart",
   "short_name": "SplitSmart",
-  "description": "The colorful, trustworthy way to split expenses with roommates.",
+  "description": "Roommate Expense Splitter",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#6366f1",
   "theme_color": "#6366f1",
+  "orientation": "portrait",
+  "scope": "/",
   "icons": [
     {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

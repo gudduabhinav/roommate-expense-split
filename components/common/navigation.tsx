@@ -36,13 +36,13 @@ export function Sidebar() {
 
       <nav className="flex-1 px-4 space-y-2">
         {navItems.map(({ href, icon: Icon, label }) => {
-          if (!Icon) return null; // Safety check
+          if (!Icon) return null;
           const isActive = pathname === href;
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${isActive
                   ? "bg-primary text-white shadow-lg shadow-primary/20"
                   : "text-foreground/60 hover:bg-slate-50 dark:hover:bg-slate-800"
                 }`}
@@ -81,17 +81,32 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-[100] md:hidden">
       <div className="relative">
-        <div className="absolute left-1/2 -translate-x-1/2 -top-8 z-[110]">
+        {/* CENTER ACTION BUTTON */}
+        <div className="absolute left-1/2 -translate-x-1/2 -top-10 z-[110]">
           <Link
             href="/add-expense"
-            className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary via-indigo-600 to-secondary rounded-full shadow-[0_8px_25px_-5px_rgba(99,102,241,0.5)] border-4 border-white dark:border-slate-900 transition-all duration-300 hover:scale-110 active:scale-95 group"
+            className="relative flex items-center justify-center group"
           >
-            <Plus size={32} className="text-white group-hover:rotate-90 transition-transform duration-300" />
-            <div className="absolute -inset-2 bg-primary/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity -z-10" />
+            {/* Pulsing Outer Ring */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary to-secondary rounded-full blur-md opacity-40 group-hover:opacity-100 group-hover:scale-125 transition-all duration-500 animate-pulse" />
+
+            {/* The Main Button */}
+            <div className="relative w-16 h-16 bg-gradient-to-tr from-primary via-indigo-600 to-secondary rounded-full border-[3px] border-white dark:border-slate-900 shadow-[0_10px_25px_-5px_rgba(99,102,241,0.6)] flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-1 group-active:scale-90 overflow-hidden">
+              {/* Internal Shine Effect */}
+              <div className="absolute inset-x-0 top-0 h-1/2 bg-white/20 -skew-y-12 translate-y-[-50%] group-hover:translate-y-[100%] transition-transform duration-700" />
+
+              <Plus size={36} className="text-white group-hover:rotate-90 transition-transform duration-500" />
+            </div>
+
+            {/* Label for center button (optional, but makes it consistent) */}
+            <span className="absolute -bottom-7 text-[10px] font-black text-primary uppercase tracking-tighter opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all">
+              Add Item
+            </span>
           </Link>
         </div>
 
-        <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 flex justify-around items-center py-3 px-2 pb-safe shadow-[0_-1px_10px_rgba(0,0,0,0.05)]">
+        {/* Navigation Bar Body */}
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-200/40 dark:border-slate-800/40 flex justify-around items-center pt-3 pb-6 px-4 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] rounded-t-[2.5rem]">
           {navItems.map(({ href, icon: Icon, label, isCenter }) => {
             const isActive = pathname === href;
 
@@ -99,21 +114,25 @@ export function BottomNav() {
               return <div key="spacer" className="w-16 h-10" />;
             }
 
-            if (!Icon) return null; // Safety check
+            if (!Icon) return null;
 
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex flex-col items-center gap-1 transition-all duration-200 ${isActive
-                    ? "text-primary scale-110"
-                    : "text-foreground/40 hover:text-foreground/60"
+                className={`flex flex-col items-center gap-1 group/item transition-all duration-200 ${isActive
+                    ? "text-primary translate-y-[-2px]"
+                    : "text-foreground/30 hover:text-foreground/60"
                   }`}
               >
-                <div className={`p-1.5 rounded-xl ${isActive ? "bg-primary/10" : "bg-transparent"}`}>
-                  <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                <div className={`p-2 rounded-[1.2rem] transition-all duration-300 ${isActive
+                    ? "bg-primary/10 shadow-inner"
+                    : "bg-transparent group-hover/item:bg-slate-100 dark:group-hover/item:bg-slate-800"
+                  }`}>
+                  <Icon size={22} strokeWidth={isActive ? 2.5 : 2} className="transition-transform duration-300 group-hover/item:scale-110" />
                 </div>
-                <span className={`text-[10px] font-bold uppercase tracking-tighter ${isActive ? "opacity-100" : "opacity-0"}`}>
+                <span className={`text-[9px] font-black uppercase tracking-[0.1em] transition-all duration-300 ${isActive ? "opacity-100 scale-100" : "opacity-0 scale-75"
+                  }`}>
                   {label}
                 </span>
               </Link>

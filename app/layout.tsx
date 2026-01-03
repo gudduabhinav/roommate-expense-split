@@ -42,7 +42,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${poppins.variable} font-sans antialiased`}
       >
-        {/* <PWARegistration /> */}
+        <PWARegistration />
         {children}
       </body>
     </html>
