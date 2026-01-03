@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Target, BrainCircuit, Sparkles, BarChart3 } from "lucide-react";
+import { Target, BrainCircuit, Sparkles, BarChart3, PieChart } from "lucide-react";
 
 export default function AnalyticsPage() {
     const [period, setPeriod] = useState("Monthly");
@@ -69,11 +69,7 @@ export default function AnalyticsPage() {
 
             <div className="grid md:grid-cols-2 gap-8 opacity-40 grayscale pointer-events-none">
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-700 h-[300px] flex flex-col items-center justify-center">
-                    <svg width={48} height={48} className="text-foreground/10" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
-                        <path d="M12 2a10 10 0 0 1 8.66 5" stroke="currentColor" strokeWidth="2" fill="none" />
-                        <path d="M12 2a10 10 0 0 1 0 20" stroke="currentColor" strokeWidth="2" fill="none" />
-                    </svg>
+                    <PieChart size={48} className="text-foreground/10" />
                 </div>
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-700 h-[300px] flex flex-col items-center justify-center">
                     <Target size={48} className="text-foreground/10" />
