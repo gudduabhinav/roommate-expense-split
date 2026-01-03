@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, Camera, IndianRupee, Save, Users, ChevronDown, Loader2, Check, AlertCircle } from "lucide-react";
+import { ArrowLeft, Camera, IndianRupee, Save, Users, ChevronDown, Loader2, Check, AlertCircle, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -21,6 +21,7 @@ const CATEGORIES = [
 export default function AddExpensePage() {
     const [amount, setAmount] = useState("");
     const [title, setTitle] = useState("");
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [category, setCategory] = useState("Dining");
     const [splitType, setSplitType] = useState("equal");
     const [groups, setGroups] = useState<any[]>([]);
@@ -88,6 +89,7 @@ export default function AddExpensePage() {
                     description: title,
                     amount: parseFloat(amount),
                     category,
+                    date: new Date(date).toISOString(),
                     split_type: splitType
                 }])
                 .select()
@@ -188,6 +190,20 @@ export default function AddExpensePage() {
                             onChange={(e) => setTitle(e.target.value)}
                             className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-[1.5rem] py-6 px-8 text-xl font-bold focus:ring-0 transition-all outline-none text-slate-900 dark:text-white"
                         />
+                    </div>
+
+                    {/* Date Picker */}
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black uppercase tracking-widest ml-4 text-foreground/40">Date</label>
+                        <div className="relative">
+                            <input
+                                type="date"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-[1.5rem] py-6 px-8 text-xl font-bold focus:ring-0 transition-all outline-none text-slate-900 dark:text-white"
+                            />
+                            <Calendar className="absolute right-8 top-1/2 -translate-y-1/2 text-foreground/20 pointer-events-none" size={24} />
+                        </div>
                     </div>
 
                     {/* Group Selection */}

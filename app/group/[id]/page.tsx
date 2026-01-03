@@ -1,10 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, MoreVertical, Plus, Receipt, TrendingUp, History, Users as UsersIcon, Loader2, Share2, Copy, CheckCircle2, Trash2, UserMinus, ArrowUpRight, ArrowDownLeft, Calendar } from "lucide-react";
+import { ArrowLeft, MoreVertical, Plus, Receipt, TrendingUp, History, Users as UsersIcon, Loader2, Share2, Copy, CheckCircle2, Trash2, UserMinus, ArrowUpRight, ArrowDownLeft, Calendar, Mail, QrCode } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+
+const CATEGORIES = [
+    { id: "Dining", icon: "🍴", label: "Dining" },
+    { id: "Groceries", icon: "🛒", label: "Groc" },
+    { id: "Electricity", icon: "⚡", label: "Elec" },
+    { id: "Rent", icon: "🏠", label: "Rent" },
+    { id: "Transport", icon: "🚕", label: "Travel" },
+    { id: "Trip", icon: "✈️", label: "Trip" },
+    { id: "Medical", icon: "🏥", label: "Med" },
+    { id: "Entertainment", icon: "🍿", label: "Fun" },
+    { id: "Other", icon: "📦", label: "Other" },
+];
 
 export default function GroupDetailPage() {
     const { id } = useParams();
@@ -17,57 +29,81 @@ export default function GroupDetailPage() {
     const [copied, setCopied] = useState(false);
     const [userRole, setUserRole] = useState<string>("member");
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showInviteOptions, setShowInviteOptions] = useState(false);
+
+    const fetchData = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            // Fetch Group Info
+            const { data: groupData, error: groupError } = await supabase
+                .from('groups')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (groupData) setGroup(groupData);
+
+            // Fetch Members & User's Role
+            const { data: membersData } = await supabase
+                .from('group_members')
+                .select(`
+                    *,
+                    profiles:user_id(*)
+                `)
+                .eq('group_id', id);
+
+            if (membersData) {
+                setMembers(membersData);
+                const currentUserMember = membersData.find(m => m.user_id === user.id);
+                if (currentUserMember) setUserRole(currentUserMember.role);
+            }
+
+            // Fetch Expenses
+            const { data: expensesData } = await supabase
+                .from('expenses')
+                .select('*')
+                .eq('group_id', id)
+                .order('date', { ascending: false });
+
+            if (expensesData) setExpenses(expensesData);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     useEffect(() => {
-        async function fetchGroupData() {
+        async function init() {
             setLoading(true);
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
-                    router.push('/auth');
-                    return;
-                }
-
-                // Fetch Group Info
-                const { data: groupData, error: groupError } = await supabase
-                    .from('groups')
-                    .select('*')
-                    .eq('id', id)
-                    .single();
-
-                if (groupError || !groupData) throw new Error("Group not found");
-                setGroup(groupData);
-
-                // Fetch Members & User's Role
-                const { data: membersData } = await supabase
-                    .from('group_members')
-                    .select(`
-                        *,
-                        profiles:user_id(*)
-                    `)
-                    .eq('group_id', id);
-
-                if (membersData) {
-                    setMembers(membersData);
-                    const currentUserMember = membersData.find(m => m.user_id === user.id);
-                    if (currentUserMember) setUserRole(currentUserMember.role);
-                }
-
-                // Fetch Expenses
-                const { data: expensesData } = await supabase
-                    .from('expenses')
-                    .select('*')
-                    .eq('group_id', id)
-                    .order('created_at', { ascending: false });
-
-                if (expensesData) setExpenses(expensesData);
-            } catch (err: any) {
-                console.error(err);
-            } finally {
-                setLoading(false);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                router.push('/auth');
+                return;
             }
+            await fetchData();
+            setLoading(false);
         }
-        fetchGroupData();
+        init();
+
+        // Realtime Subscription
+        const channel = supabase
+            .channel('group_updates')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'group_members', filter: `group_id=eq.${id}` },
+                () => fetchData()
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'expenses', filter: `group_id=eq.${id}` },
+                () => fetchData()
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, [id, router]);
 
     const copyInviteLink = () => {
@@ -76,6 +112,26 @@ export default function GroupDetailPage() {
         navigator.clipboard.writeText(link);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleShare = async () => {
+        if (!group?.invite_code) return;
+        const link = `${window.location.origin}/join/${group.invite_code}`;
+        const text = `Join my expense circle "${group.name}" on Roomie! tap here: ${link}`;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: `Join ${group.name}`,
+                    text: text,
+                    url: link
+                });
+            } catch (err) {
+                console.log("Share skipped", err);
+            }
+        } else {
+            window.location.href = `mailto:?subject=Join ${group.name}&body=${text}`;
+        }
     };
 
     const handleDeleteGroup = async () => {
@@ -131,7 +187,7 @@ export default function GroupDetailPage() {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-32 text-foreground">
-            {/* Header section with Owner Controls */}
+            {/* Header section */}
             <div className="bg-gradient-to-br from-primary to-secondary p-4 md:p-12 pb-24 text-white relative h-80 md:h-72 overflow-hidden shadow-2xl">
                 <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-white/10 rounded-full blur-3xl" />
 
@@ -140,10 +196,27 @@ export default function GroupDetailPage() {
                         <ArrowLeft size={20} />
                     </Link>
                     <div className="flex gap-2">
-                        <button onClick={copyInviteLink} className="bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md hover:bg-white/30 transition-all flex items-center gap-2 font-bold text-[10px] md:text-xs uppercase tracking-widest">
-                            {copied ? <CheckCircle2 size={16} /> : <Share2 size={16} />}
-                            {copied ? "Copied" : "Invite"}
+                        <button onClick={() => setShowInviteOptions(!showInviteOptions)} className="bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md hover:bg-white/30 transition-all flex items-center gap-2 font-bold text-[10px] md:text-xs uppercase tracking-widest relative">
+                            <Plus size={16} /> Invite
                         </button>
+
+                        {/* Dropdown for Invite Options */}
+                        {showInviteOptions && (
+                            <div className="absolute top-14 right-16 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-2 text-foreground z-[50] animate-in fade-in slide-in-from-top-2">
+                                <button onClick={copyInviteLink} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-3 w-full text-left transition-colors">
+                                    {copied ? <CheckCircle2 size={16} className="text-green-500" /> : <Copy size={16} />}
+                                    <span className="text-xs font-bold">Copy Link</span>
+                                </button>
+                                <button onClick={handleShare} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-3 w-full text-left transition-colors">
+                                    <Share2 size={16} />
+                                    <span className="text-xs font-bold">Share via...</span>
+                                </button>
+                                <a href={`mailto:?subject=Join ${group.name}&body=Join my circle using code: ${group.invite_code}`} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-3 w-full text-left transition-colors">
+                                    <Mail size={16} />
+                                    <span className="text-xs font-bold">Email</span>
+                                </a>
+                            </div>
+                        )}
 
                         {isOwner && (
                             <div className="relative">
@@ -178,9 +251,23 @@ export default function GroupDetailPage() {
                             <span className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] font-mono">CODE: {group.invite_code}</span>
                         </div>
                         <h1 className="text-3xl md:text-5xl font-bold font-poppins tracking-tight">{group.name}</h1>
-                        <p className="text-white/70 flex items-center gap-2 font-medium text-sm">
-                            <UsersIcon size={16} /> {members.length} Members • {isOwner ? 'Circle Owner' : 'Member'}
-                        </p>
+                        <div className="flex items-center gap-3">
+                            <div className="flex -space-x-3">
+                                {members.slice(0, 5).map((m, i) => (
+                                    <div key={i} className="w-8 h-8 rounded-full border-2 border-primary bg-slate-200 overflow-hidden">
+                                        <img src={m.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.profiles?.first_name || 'User'}`} className="w-full h-full object-cover" />
+                                    </div>
+                                ))}
+                                {members.length > 5 && (
+                                    <div className="w-8 h-8 rounded-full border-2 border-primary bg-slate-800 text-white flex items-center justify-center text-[10px] font-bold">
+                                        +{members.length - 5}
+                                    </div>
+                                )}
+                            </div>
+                            <p className="text-white/70 flex items-center gap-2 font-medium text-sm">
+                                {members.length} Members • {isOwner ? 'Circle Owner' : 'Member'}
+                            </p>
+                        </div>
                     </div>
                     <div className="bg-white/10 backdrop-blur-lg rounded-[2.5rem] p-6 md:p-8 border border-white/20 shadow-2xl">
                         <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Circle Net Balance</p>
@@ -219,7 +306,7 @@ export default function GroupDetailPage() {
                             )}
                         </div>
                     ))}
-                    <button onClick={copyInviteLink} className="shrink-0 w-48 md:w-52 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-foreground/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all">
+                    <button onClick={() => setShowInviteOptions(true)} className="shrink-0 w-48 md:w-52 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-foreground/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all">
                         <div className="p-3 rounded-full border-2 border-current">
                             <Plus size={32} />
                         </div>
@@ -272,12 +359,12 @@ export default function GroupDetailPage() {
                                         <div key={expense.id} className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-700 flex items-center justify-between group hover:border-primary/40 transition-all cursor-pointer">
                                             <div className="flex items-center gap-4 md:gap-5">
                                                 <div className="w-14 h-14 md:w-16 md:h-16 bg-slate-50 dark:bg-slate-900 rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-inner">
-                                                    {expense.category || '💸'}
+                                                    {expense.category_icon || (CATEGORIES.find(c => c.id === expense.category)?.icon) || '💸'}
                                                 </div>
                                                 <div className="space-y-1">
                                                     <h3 className="font-bold font-poppins text-base md:text-lg text-slate-900 dark:text-white">{expense.description}</h3>
                                                     <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
-                                                        <Calendar size={10} /> {new Date(expense.created_at).toLocaleDateString()}
+                                                        <Calendar size={10} /> {new Date(expense.date || expense.created_at).toLocaleDateString()}
                                                     </p>
                                                 </div>
                                             </div>
