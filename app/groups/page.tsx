@@ -47,9 +47,9 @@ export default function GroupsPage() {
     }
 
     return (
-        <div className="p-4 md:p-10 space-y-8 pb-24 md:pb-10 text-foreground">
+        <div className="px-2 py-4 md:px-10 md:py-10 space-y-8 pb-32 md:pb-10 text-foreground">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-2 md:px-0">
                 <div>
                     <h1 className="text-3xl font-bold font-poppins">Your Groups</h1>
                     <p className="text-foreground/50">Manage your shared expenses with ease.</p>
@@ -80,7 +80,7 @@ export default function GroupsPage() {
             </div>
 
             {/* Search & Manual Join */}
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex flex-col md:flex-row gap-4 px-1 md:px-0">
                 <div className="relative flex-grow">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={20} />
                     <input

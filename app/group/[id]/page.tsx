@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, MoreVertical, Plus, Receipt, TrendingUp, History, Users as UsersIcon, Loader2, Share2, Copy, CheckCircle2, Trash2, UserMinus } from "lucide-react";
+import { ArrowLeft, MoreVertical, Plus, Receipt, TrendingUp, History, Users as UsersIcon, Loader2, Share2, Copy, CheckCircle2, Trash2, UserMinus, ArrowUpRight, ArrowDownLeft, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -68,7 +68,7 @@ export default function GroupDetailPage() {
             }
         }
         fetchGroupData();
-    }, [id]);
+    }, [id, router]);
 
     const copyInviteLink = () => {
         if (!group?.invite_code) return;
@@ -80,7 +80,7 @@ export default function GroupDetailPage() {
 
     const handleDeleteGroup = async () => {
         if (userRole !== 'owner') return;
-        if (!confirm("Are you strings? This will delete all expenses and members forever.")) return;
+        if (!confirm("Are you sure? This will delete all expenses and members forever.")) return;
 
         try {
             const { error } = await supabase.from('groups').delete().eq('id', id);
@@ -130,17 +130,17 @@ export default function GroupDetailPage() {
     const isOwner = userRole === 'owner';
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20 md:pb-10 text-foreground">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-32 text-foreground">
             {/* Header section with Owner Controls */}
-            <div className="bg-gradient-to-br from-primary to-secondary p-8 md:p-12 pb-24 text-white relative h-72 overflow-hidden shadow-2xl">
+            <div className="bg-gradient-to-br from-primary to-secondary p-4 md:p-12 pb-24 text-white relative h-80 md:h-72 overflow-hidden shadow-2xl">
                 <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-white/10 rounded-full blur-3xl" />
 
-                <div className="max-w-5xl mx-auto flex justify-between items-start relative z-10">
+                <div className="max-w-5xl mx-auto flex justify-between items-start relative z-10 pt-4 md:pt-0">
                     <Link href="/groups" className="bg-white/20 p-2 rounded-xl backdrop-blur-md hover:bg-white/30 transition-colors">
                         <ArrowLeft size={20} />
                     </Link>
                     <div className="flex gap-2">
-                        <button onClick={copyInviteLink} className="bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md hover:bg-white/30 transition-all flex items-center gap-2 font-bold text-xs uppercase tracking-widest">
+                        <button onClick={copyInviteLink} className="bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md hover:bg-white/30 transition-all flex items-center gap-2 font-bold text-[10px] md:text-xs uppercase tracking-widest">
                             {copied ? <CheckCircle2 size={16} /> : <Share2 size={16} />}
                             {copied ? "Copied" : "Invite"}
                         </button>
@@ -169,7 +169,7 @@ export default function GroupDetailPage() {
                     </div>
                 </div>
 
-                <div className="max-w-5xl mx-auto mt-8 flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
+                <div className="max-w-5xl mx-auto mt-6 md:mt-8 flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10 px-2 md:px-0">
                     <div className="space-y-4">
                         <div className="flex items-center gap-3">
                             <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/10">
@@ -177,27 +177,27 @@ export default function GroupDetailPage() {
                             </span>
                             <span className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] font-mono">CODE: {group.invite_code}</span>
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-bold font-poppins tracking-tight">{group.name}</h1>
-                        <p className="text-white/70 flex items-center gap-2 font-medium">
+                        <h1 className="text-3xl md:text-5xl font-bold font-poppins tracking-tight">{group.name}</h1>
+                        <p className="text-white/70 flex items-center gap-2 font-medium text-sm">
                             <UsersIcon size={16} /> {members.length} Members • {isOwner ? 'Circle Owner' : 'Member'}
                         </p>
                     </div>
-                    <div className="bg-white/10 backdrop-blur-lg rounded-[2.5rem] p-8 border border-white/20 shadow-2xl">
+                    <div className="bg-white/10 backdrop-blur-lg rounded-[2.5rem] p-6 md:p-8 border border-white/20 shadow-2xl">
                         <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Circle Net Balance</p>
-                        <p className="text-4xl font-bold font-poppins">₹{(group.total || 0).toLocaleString()}</p>
+                        <p className="text-3xl md:text-4xl font-bold font-poppins">₹{(group.total || 0).toLocaleString()}</p>
                     </div>
                 </div>
             </div>
 
-            <div className="max-w-5xl mx-auto px-4 -mt-8 space-y-10 relative z-10">
-                {/* Members with Remove logic for Admin */}
-                <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
+            <div className="max-w-5xl mx-auto px-2 md:px-4 -mt-8 space-y-10 relative z-10">
+                {/* Members list */}
+                <div className="flex gap-4 overflow-x-auto pb-4 px-1 hide-scrollbar">
                     {members.map((member) => (
                         <div key={member.id} className="relative group shrink-0">
-                            <div className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-700 w-52 space-y-4 hover:border-primary/40 transition-all hover:-translate-y-1">
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-700 w-48 md:w-52 space-y-4 hover:border-primary/40 transition-all">
                                 <div className="flex justify-between items-start">
                                     <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-900 overflow-hidden ring-4 ring-slate-50 dark:ring-slate-700 shadow-lg relative">
-                                        <img src={member.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.profiles?.full_name || member.profiles?.id}`} alt="avatar" />
+                                        <img src={member.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.profiles?.first_name || 'User'}`} alt="avatar" />
                                     </div>
                                     <div className={`text-[10px] font-black px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-900 text-foreground/30 uppercase tracking-[0.1em]`}>
                                         {member.role === 'owner' ? 'Admin' : 'Active'}
@@ -209,18 +209,17 @@ export default function GroupDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Remove Member Button (Only for Owners, can't remove self) */}
                             {isOwner && member.role !== 'owner' && (
                                 <button
                                     onClick={() => handleRemoveMember(member.user_id)}
-                                    className="absolute -top-2 -right-2 w-8 h-8 bg-danger text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 hover:scale-110 active:scale-95"
+                                    className="absolute -top-2 -right-2 w-8 h-8 bg-danger text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 hover:scale-110"
                                 >
                                     <UserMinus size={16} />
                                 </button>
                             )}
                         </div>
                     ))}
-                    <button onClick={copyInviteLink} className="shrink-0 w-52 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-foreground/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all">
+                    <button onClick={copyInviteLink} className="shrink-0 w-48 md:w-52 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-foreground/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all">
                         <div className="p-3 rounded-full border-2 border-current">
                             <Plus size={32} />
                         </div>
@@ -228,11 +227,11 @@ export default function GroupDetailPage() {
                     </button>
                 </div>
 
-                {/* Tabs & Content (Existing logic retained) */}
-                <div className="bg-white/80 dark:bg-slate-800/80 p-2 rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-700 flex backdrop-blur-2xl">
+                {/* Sub-Tabs */}
+                <div className="bg-white/80 dark:bg-slate-800/80 p-1.5 rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-700 flex backdrop-blur-2xl mx-1 overflow-x-auto hide-scrollbar">
                     {[
                         { id: "expenses", label: "Ledger", icon: Receipt },
-                        { id: "balances", label: "Owes", icon: UsersIcon },
+                        { id: "balances", label: "Balances", icon: UsersIcon },
                         { id: "analytics", label: "Stats", icon: TrendingUp },
                         { id: "activity", label: "Log", icon: History },
                     ].map((tab) => {
@@ -241,7 +240,7 @@ export default function GroupDetailPage() {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex-grow flex items-center justify-center gap-2 py-5 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-primary text-white shadow-xl shadow-primary/30' : 'text-foreground/30'}`}
+                                className={`flex-grow min-w-[80px] flex items-center justify-center gap-2 py-4 md:py-5 px-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-primary text-white shadow-xl shadow-primary/30' : 'text-foreground/30'}`}
                             >
                                 <Icon size={18} />
                                 <span className="hidden sm:inline">{tab.label}</span>
@@ -250,11 +249,11 @@ export default function GroupDetailPage() {
                     })}
                 </div>
 
-                <div className="space-y-6 pb-20">
+                <div className="px-1 space-y-6 pb-20">
                     {activeTab === "expenses" && (
                         <div className="space-y-6">
-                            <div className="flex justify-between items-center px-6">
-                                <h2 className="text-2xl font-bold font-poppins">Group Ledger</h2>
+                            <div className="flex justify-between items-center px-4 md:px-6">
+                                <h2 className="text-2xl font-bold font-poppins text-slate-900 dark:text-white">Group Ledger</h2>
                                 <p className="text-[10px] font-black text-foreground/20 uppercase tracking-[0.2em]">{expenses.length} Records</p>
                             </div>
 
@@ -268,28 +267,60 @@ export default function GroupDetailPage() {
                                     </Link>
                                 </div>
                             ) : (
-                                <div className="space-y-4 px-2">
+                                <div className="space-y-4">
                                     {expenses.map((expense) => (
                                         <div key={expense.id} className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-700 flex items-center justify-between group hover:border-primary/40 transition-all cursor-pointer">
-                                            <div className="flex items-center gap-5">
-                                                <div className="w-16 h-16 bg-slate-50 dark:bg-slate-900 rounded-2xl flex items-center justify-center text-3xl shadow-inner">
+                                            <div className="flex items-center gap-4 md:gap-5">
+                                                <div className="w-14 h-14 md:w-16 md:h-16 bg-slate-50 dark:bg-slate-900 rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-inner">
                                                     {expense.category || '💸'}
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <h3 className="font-bold font-poppins text-lg">{expense.description}</h3>
-                                                    <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest">
-                                                        {new Date(expense.created_at).toLocaleDateString()}
+                                                    <h3 className="font-bold font-poppins text-base md:text-lg text-slate-900 dark:text-white">{expense.description}</h3>
+                                                    <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                                                        <Calendar size={10} /> {new Date(expense.created_at).toLocaleDateString()}
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-2xl font-bold font-poppins text-primary">₹{(expense.amount || 0).toLocaleString()}</p>
+                                                <p className="text-xl md:text-2xl font-bold font-poppins text-primary">₹{(expense.amount || 0).toLocaleString()}</p>
                                                 <p className="text-[10px] text-primary/60 font-black uppercase tracking-widest">Shared</p>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             )}
+                        </div>
+                    )}
+
+                    {activeTab === "balances" && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                            <h2 className="text-2xl font-bold font-poppins px-4">Balances</h2>
+                            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-700 text-center space-y-4">
+                                <UsersIcon size={48} className="mx-auto text-primary/20" />
+                                <p className="text-foreground/40 font-medium">Coming Soon: Detailed settlement logic and balance tracking for individual members.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === "analytics" && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                            <h2 className="text-2xl font-bold font-poppins px-4">Visual Stats</h2>
+                            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-center space-y-4">
+                                <div className="flex gap-4 items-end h-40">
+                                    {[40, 70, 45, 90, 60, 80].map((h, i) => (
+                                        <div key={i} style={{ height: `${h}%` }} className="w-8 bg-primary/20 rounded-t-lg" />
+                                    ))}
+                                </div>
+                                <p className="text-foreground/40 font-medium pt-4">Spending charts and category-wise analysis are being prepared.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === "activity" && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 text-center py-12">
+                            <History size={48} className="mx-auto text-foreground/10" />
+                            <p className="text-foreground/40 font-black text-[10px] uppercase tracking-[0.4em]">Audit Log</p>
+                            <p className="text-xs text-foreground/30">History of all edits and removals will appear here.</p>
                         </div>
                     )}
                 </div>

@@ -15,39 +15,46 @@ export default function ProfilePage() {
     useEffect(() => {
         async function getProfile() {
             setLoading(true);
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                // Try to get profile from database
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', user.id)
-                    .single();
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    // Try to get profile from database
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
 
-                // Prioritize Name: 1. Profile DB, 2. Auth Metadata, 3. Email Prefix
-                const fullName = profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0];
-                setUser({ ...user, ...profile, display_name: fullName });
+                    // Prioritize Name: 1. Profile DB, 2. Auth Metadata, 3. Email Prefix
+                    const fullName = profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0];
+                    const firstName = profile?.first_name || user.user_metadata?.first_name || fullName?.split(' ')[0];
 
-                // Fetch real stats
-                const { count: groupCount } = await supabase
-                    .from('group_members')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('user_id', user.id);
+                    setUser({ ...user, ...profile, display_name: fullName, first_name: firstName });
 
-                const { data: expenses } = await supabase
-                    .from('expenses')
-                    .select('amount')
-                    .eq('paid_by', user.id);
+                    // Fetch real stats
+                    const { count: groupCount } = await supabase
+                        .from('group_members')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('user_id', user.id);
 
-                const total = expenses?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+                    const { data: expenses } = await supabase
+                        .from('expenses')
+                        .select('amount')
+                        .eq('paid_by', user.id);
 
-                setStats({
-                    groups: groupCount || 0,
-                    friends: 0, // Need a friends/contacts table for this
-                    totalSplit: total
-                });
+                    const total = expenses?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+
+                    setStats({
+                        groups: groupCount || 0,
+                        friends: 0, // Need a friends/contacts table for this
+                        totalSplit: total
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         }
         getProfile();
     }, []);
@@ -70,14 +77,14 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="p-4 md:p-10 space-y-10 pb-24 text-foreground">
-            <h1 className="text-3xl font-bold font-poppins text-foreground">Profile</h1>
+        <div className="px-2 py-4 md:px-10 md:py-10 space-y-10 pb-32 text-foreground">
+            <h1 className="text-3xl font-bold font-poppins text-foreground px-2">Profile</h1>
 
             {/* User Card */}
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-700 flex flex-col md:flex-row items-center gap-8 text-center md:text-left transition-all hover:border-primary/20">
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-700 flex flex-col md:flex-row items-center gap-8 text-center md:text-left transition-all hover:border-primary/20 mx-1 md:mx-0">
                 <div className="w-24 h-24 rounded-[2rem] bg-primary/10 p-2 overflow-hidden ring-4 ring-primary/5">
                     <img
-                        src={user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.display_name || 'User'}`}
+                        src={user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.first_name || 'User'}`}
                         alt="profile"
                         className="w-full h-full rounded-2xl object-cover"
                     />
@@ -99,7 +106,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-1 md:px-0">
                 {[
                     { label: "Groups", value: stats.groups, icon: "👥" },
                     { label: "Friends", value: "0", icon: "👋" },
@@ -115,7 +122,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Settings List */}
-            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-700 overflow-hidden divide-y divide-slate-50 dark:divide-slate-700">
+            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-700 overflow-hidden divide-y divide-slate-50 dark:divide-slate-700 mx-1 md:mx-0">
                 {[
                     { icon: Bell, label: "Notification Preferences", desc: "Manage alerts and web push", color: "text-primary" },
                     { icon: Shield, label: "Security & Privacy", desc: "Two-factor auth and data privacy", color: "text-success" },
@@ -139,15 +146,17 @@ export default function ProfilePage() {
             </div>
 
             {/* Logout */}
-            <button
-                onClick={handleLogout}
-                className="w-full bg-danger/10 text-danger py-5 rounded-[2rem] font-bold flex items-center justify-center gap-2 hover:bg-danger/20 transition-all border border-danger/10"
-            >
-                <LogOut size={20} /> Log Out
-            </button>
+            <div className="px-1 md:px-0">
+                <button
+                    onClick={handleLogout}
+                    className="w-full bg-danger/10 text-danger py-5 rounded-[2rem] font-bold flex items-center justify-center gap-2 hover:bg-danger/20 transition-all border border-danger/10"
+                >
+                    <LogOut size={20} /> Log Out
+                </button>
+            </div>
 
-            <p className="text-center text-xs text-foreground/20 font-bold uppercase tracking-[0.2em]">
-                SplitSmart v1.0.0 • Built with Next.js & Supabase
+            <p className="text-center text-[10px] text-foreground/20 font-black uppercase tracking-[0.4em] py-8">
+                SplitSmart v1.0.0
             </p>
         </div>
     );

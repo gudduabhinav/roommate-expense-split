@@ -23,7 +23,9 @@ export default function DashboardPage() {
                     .eq('id', authUser.id)
                     .single();
 
-                setUser({ ...authUser, ...profile });
+                // Get name from profile, then metadata, then email
+                const firstName = profile?.first_name || authUser.user_metadata?.first_name || authUser.email?.split('@')[0];
+                setUser({ ...authUser, ...profile, first_name: firstName });
 
                 // Fetch Groups
                 const { data: groupsData } = await supabase
@@ -51,21 +53,21 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="p-4 md:p-10 space-y-10 text-foreground">
+        <div className="px-2 py-4 md:px-10 md:py-10 space-y-10 text-foreground">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center px-1 md:px-0">
                 <div>
                     <h1 className="text-3xl font-bold font-poppins">Dashboard</h1>
-                    <p className="text-foreground/50">Welcome back, {user?.first_name || 'Roomie'}! 👋</p>
+                    <p className="text-foreground/50">Welcome back, {user?.first_name}! 👋</p>
                 </div>
-                <Link href="/profile" className="w-12 h-12 rounded-2xl bg-slate-200 overflow-hidden card-shadow hover:scale-105 transition-transform">
-                    <img src={user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.full_name || 'User'}`} alt="profile" />
+                <Link href="/profile" className="w-12 h-12 rounded-2xl bg-slate-200 overflow-hidden card-shadow hover:scale-105 transition-transform flex items-center justify-center border-2 border-white dark:border-slate-800">
+                    <img src={user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.first_name || 'User'}`} alt="profile" />
                 </Link>
             </div>
 
             {/* Balance Card */}
             <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-primary p-8 rounded-[2.5rem] text-white card-shadow relative overflow-hidden group">
+                <div className="bg-primary p-6 md:p-8 rounded-[2.5rem] text-white card-shadow relative overflow-hidden group">
                     <div className="absolute top-[-10%] right-[-10%] w-48 h-48 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700" />
                     <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                         <div className="flex justify-between items-start">
@@ -113,7 +115,7 @@ export default function DashboardPage() {
 
             {/* Groups Section */}
             <div className="space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center px-1 md:px-0">
                     <h2 className="text-2xl font-bold font-poppins">Your Groups</h2>
                     <Link href="/groups" className="text-primary font-semibold text-sm hover:underline">View All</Link>
                 </div>
@@ -168,13 +170,14 @@ export default function DashboardPage() {
                 <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl" />
                 <div className="relative z-10 space-y-2">
                     <p className="text-white/70 text-sm font-medium">Smart AI Insight ✨</p>
-                    <h3 className="text-xl font-bold font-poppins">Ready to start splitting?</h3>
+                    <h3 className="text-xl font-bold font-poppins transition-all group-hover:translate-x-1">Ready to start splitting?</h3>
                     <p className="text-white/80 text-sm">Add an expense to see your spending patterns here.</p>
                 </div>
                 <div className="hidden md:block relative z-10">
                     <BarChart3 size={64} className="text-white/20" />
                 </div>
             </div>
+            <div className="h-20 md:hidden" /> {/* Navigation Spacer */}
         </div>
     );
 }
