@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingUp, Target, BrainCircuit, Sparkles, Loader2, BarChart3, PieChart as PieIcon } from "lucide-react";
+import { TrendingUp, Target, BrainCircuit, Sparkles, Loader2, BarChart3, PieChart } from "lucide-react";
 
 export default function AnalyticsPage() {
     const [period, setPeriod] = useState("Monthly");
@@ -70,7 +70,7 @@ export default function AnalyticsPage() {
 
             <div className="grid md:grid-cols-2 gap-8 opacity-40 grayscale pointer-events-none">
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-700 h-[300px] flex flex-col items-center justify-center">
-                    <PieIcon size={48} className="text-foreground/10" />
+                    <PieChart size={48} className="text-foreground/10" />
                 </div>
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-700 h-[300px] flex flex-col items-center justify-center">
                     <Target size={48} className="text-foreground/10" />
