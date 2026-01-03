@@ -79,69 +79,93 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[100] md:hidden">
-      <div className="relative">
-        {/* CENTER ACTION BUTTON - Redesigned with custom borders and positioning */}
-        <div className="absolute left-1/2 -translate-x-1/2 -top-7 z-[110]">
+    <nav className="fixed bottom-0 left-0 right-0 z-[100] md:hidden h-[90px] pointer-events-none">
+      <div className="relative w-full h-full flex items-end justify-center">
+        {/* 
+          Vibrant Dark Notched Background 
+          Color: Deep Slate/Indigo for a premium dark look
+        */}
+        <div className="absolute inset-x-0 bottom-0 top-6 text-[#1e293b] dark:text-[#0f172a] pointer-events-auto">
+          <svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            className="filter drop-shadow-[0_-5px_20px_rgba(0,0,0,0.3)]"
+          >
+            <path
+              d="M0,0 L32,0 
+                 C38,0 38,20 50,20 
+                 C62,20 62,0 68,0 
+                 L100,0 L100,100 L0,100 Z"
+              fill="currentColor"
+            />
+          </svg>
+        </div>
+
+        {/* 
+          The Floating Center Button 
+          Gold/Primary contrast against the dark bar
+        */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-0 z-20 pointer-events-auto">
           <Link
             href="/add-expense"
-            className="relative flex items-center justify-center group"
+            className="flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-[#6366f1] via-[#818cf8] to-[#60a5fa] rounded-full shadow-[0_8px_30px_rgba(99,102,241,0.5)] border-4 border-[#1e293b] dark:border-[#0f172a] hover:scale-110 active:scale-90 transition-all group"
           >
-            {/* Outer Soft Glow Layer */}
-            <div className="absolute -inset-4 bg-primary/25 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-            {/* Multi-layered Border Effect */}
-            <div className="relative flex items-center justify-center">
-              {/* Layer 3: Dynamic Rotation Ring */}
-              <div className="absolute -inset-[2px] rounded-full bg-gradient-to-tr from-primary via-secondary to-accent opacity-70 group-hover:animate-spin-slow transition-opacity duration-500" />
-
-              {/* Layer 2: Glass White Border */}
-              <div className="absolute -inset-[1px] rounded-full bg-white dark:bg-slate-800" />
-
-              {/* Layer 1: The Main Button Body */}
-              <div className="relative w-14 h-14 bg-gradient-to-br from-primary via-indigo-600 to-secondary rounded-full shadow-[0_10px_20px_-5px_rgba(99,102,241,0.5)] flex items-center justify-center transition-all duration-300 group-hover:scale-105 active:scale-90 overflow-hidden">
-                {/* Internal Radial Light Source */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.4),transparent)]" />
-
-                <Plus size={32} className="text-white relative z-10 group-hover:rotate-180 transition-transform duration-700" />
-              </div>
-            </div>
+            <Plus size={36} className="text-white group-hover:rotate-90 transition-transform duration-500" />
+            {/* Animated Ring */}
+            <div className="absolute inset-0 rounded-full border-2 border-white/30 animate-ping opacity-0 group-hover:opacity-100 transition-opacity" />
           </Link>
         </div>
 
-        {/* Navigation Bar Body - Minimalist & Premium */}
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-200/50 dark:border-slate-800/50 flex justify-between items-center pt-2.5 pb-8 px-8 shadow-[0_-8px_30px_rgba(0,0,0,0.04)] rounded-t-[3rem]">
-          {navItems.map(({ href, icon: Icon, label, isCenter }) => {
-            const isActive = pathname === href;
+        {/* Icons Area - White/Light icons for Dark Theme */}
+        <div className="relative z-10 w-full flex justify-between items-center px-4 pb-6 h-16 pointer-events-auto">
+          {/* Left pair */}
+          <div className="flex justify-around flex-1 items-center">
+            {navItems.slice(0, 2).map(({ href, icon: Icon, label }) => {
+              const isActive = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex flex-col items-center gap-1 transition-all flex-grow ${isActive ? "text-white scale-110" : "text-white/40 hover:text-white/70"
+                    }`}
+                >
+                  <div className={`p-1.5 rounded-xl transition-colors ${isActive ? "bg-white/10" : ""}`}>
+                    <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                  </div>
+                  <span className={`text-[9px] font-bold uppercase tracking-[0.1em] ${isActive ? "opacity-100" : "opacity-60"}`}>
+                    {label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
 
-            if (isCenter) {
-              return <div key="spacer" className="w-14 h-10" />;
-            }
+          {/* Spacer for the Notch */}
+          <div className="w-16 h-1" />
 
-            if (!Icon) return null;
-
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex flex-col items-center gap-1.5 transition-all duration-300 relative ${isActive ? "text-primary -translate-y-1" : "text-foreground/30"
-                  }`}
-              >
-                <div className={`transition-all duration-300 ${isActive ? "scale-110" : "scale-100"}`}>
-                  <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
-                </div>
-                <span className={`text-[9px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${isActive ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
-                  }`}>
-                  {label}
-                </span>
-
-                {/* Active Indicator Dot */}
-                {isActive && (
-                  <div className="absolute -bottom-2 w-1 h-1 bg-primary rounded-full animate-in zoom-in" />
-                )}
-              </Link>
-            );
-          })}
+          {/* Right pair */}
+          <div className="flex justify-around flex-1 items-center">
+            {navItems.slice(3).map(({ href, icon: Icon, label }) => {
+              const isActive = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex flex-col items-center gap-1 transition-all flex-grow ${isActive ? "text-white scale-110" : "text-white/40 hover:text-white/70"
+                    }`}
+                >
+                  <div className={`p-1.5 rounded-xl transition-colors ${isActive ? "bg-white/10" : ""}`}>
+                    <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                  </div>
+                  <span className={`text-[9px] font-bold uppercase tracking-[0.1em] ${isActive ? "opacity-100" : "opacity-60"}`}>
+                    {label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </div>
     </nav>

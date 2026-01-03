@@ -52,9 +52,9 @@ export default function GroupsPage() {
                     <h1 className="text-3xl font-bold font-poppins">Your Groups</h1>
                     <p className="text-foreground/50">Manage your shared expenses with ease.</p>
                 </div>
-                <button className="bg-primary text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all card-shadow">
+                <Link href="/groups/new" className="bg-primary text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all card-shadow">
                     <Plus size={20} /> Create New Group
-                </button>
+                </Link>
             </div>
 
             {/* Stats Overview */}
@@ -165,7 +165,7 @@ export default function GroupsPage() {
                                 </div>
                             </Link>
                         ))}
-                        <button className="group border-2 border-dashed border-slate-200 dark:border-slate-700 p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-foreground/30 hover:text-primary hover:border-primary/40 transition-all hover:bg-primary/5 min-h-[250px]">
+                        <Link href="/groups/new" className="group border-2 border-dashed border-slate-200 dark:border-slate-700 p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-foreground/30 hover:text-primary hover:border-primary/40 transition-all hover:bg-primary/5 min-h-[250px]">
                             <div className="w-16 h-16 rounded-full border-2 border-current flex items-center justify-center group-hover:scale-110 transition-transform">
                                 <Plus size={32} />
                             </div>
@@ -173,7 +173,7 @@ export default function GroupsPage() {
                                 <span className="font-bold text-lg block">Create New Group</span>
                                 <span className="text-sm">Start splitting with friends</span>
                             </div>
-                        </button>
+                        </Link>
                     </>
                 )}
             </div>

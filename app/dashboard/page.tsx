@@ -122,7 +122,7 @@ export default function DashboardPage() {
                     {groups.length === 0 ? (
                         <div className="col-span-full py-12 bg-white/50 dark:bg-slate-800/50 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-center space-y-4">
                             <p className="text-foreground/40 font-bold uppercase tracking-widest text-xs">No entries found</p>
-                            <Link href="/groups" className="text-primary font-bold hover:underline">Create a group now</Link>
+                            <Link href="/groups/new" className="text-primary font-bold hover:underline">Create a group now</Link>
                         </div>
                     ) : (
                         groups.map((group) => (
@@ -154,7 +154,7 @@ export default function DashboardPage() {
                         ))
                     )}
 
-                    <Link href="/groups" className="border-2 border-dashed border-slate-200 dark:border-slate-700 p-6 rounded-[2rem] flex flex-col items-center justify-center gap-2 text-foreground/40 hover:text-primary hover:border-primary/40 transition-all hover:bg-primary/5">
+                    <Link href="/groups/new" className="border-2 border-dashed border-slate-200 dark:border-slate-700 p-6 rounded-[2rem] flex flex-col items-center justify-center gap-2 text-foreground/40 hover:text-primary hover:border-primary/40 transition-all hover:bg-primary/5">
                         <div className="w-12 h-12 rounded-full border-2 border-current flex items-center justify-center transition-transform hover:scale-110">
                             <Plus size={24} />
                         </div>
