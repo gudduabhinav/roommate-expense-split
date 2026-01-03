@@ -81,37 +81,41 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-[100] md:hidden">
       <div className="relative">
-        {/* CENTER ACTION BUTTON */}
-        <div className="absolute left-1/2 -translate-x-1/2 -top-10 z-[110]">
+        {/* CENTER ACTION BUTTON - Redesigned with custom borders and positioning */}
+        <div className="absolute left-1/2 -translate-x-1/2 -top-7 z-[110]">
           <Link
             href="/add-expense"
             className="relative flex items-center justify-center group"
           >
-            {/* Pulsing Outer Ring */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary to-secondary rounded-full blur-md opacity-40 group-hover:opacity-100 group-hover:scale-125 transition-all duration-500 animate-pulse" />
+            {/* Outer Soft Glow Layer */}
+            <div className="absolute -inset-4 bg-primary/25 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
-            {/* The Main Button */}
-            <div className="relative w-16 h-16 bg-gradient-to-tr from-primary via-indigo-600 to-secondary rounded-full border-[3px] border-white dark:border-slate-900 shadow-[0_10px_25px_-5px_rgba(99,102,241,0.6)] flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-1 group-active:scale-90 overflow-hidden">
-              {/* Internal Shine Effect */}
-              <div className="absolute inset-x-0 top-0 h-1/2 bg-white/20 -skew-y-12 translate-y-[-50%] group-hover:translate-y-[100%] transition-transform duration-700" />
+            {/* Multi-layered Border Effect */}
+            <div className="relative flex items-center justify-center">
+              {/* Layer 3: Dynamic Rotation Ring */}
+              <div className="absolute -inset-[2px] rounded-full bg-gradient-to-tr from-primary via-secondary to-accent opacity-70 group-hover:animate-spin-slow transition-opacity duration-500" />
 
-              <Plus size={36} className="text-white group-hover:rotate-90 transition-transform duration-500" />
+              {/* Layer 2: Glass White Border */}
+              <div className="absolute -inset-[1px] rounded-full bg-white dark:bg-slate-800" />
+
+              {/* Layer 1: The Main Button Body */}
+              <div className="relative w-14 h-14 bg-gradient-to-br from-primary via-indigo-600 to-secondary rounded-full shadow-[0_10px_20px_-5px_rgba(99,102,241,0.5)] flex items-center justify-center transition-all duration-300 group-hover:scale-105 active:scale-90 overflow-hidden">
+                {/* Internal Radial Light Source */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.4),transparent)]" />
+
+                <Plus size={32} className="text-white relative z-10 group-hover:rotate-180 transition-transform duration-700" />
+              </div>
             </div>
-
-            {/* Label for center button (optional, but makes it consistent) */}
-            <span className="absolute -bottom-7 text-[10px] font-black text-primary uppercase tracking-tighter opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all">
-              Add Item
-            </span>
           </Link>
         </div>
 
-        {/* Navigation Bar Body */}
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-200/40 dark:border-slate-800/40 flex justify-around items-center pt-3 pb-6 px-4 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] rounded-t-[2.5rem]">
+        {/* Navigation Bar Body - Minimalist & Premium */}
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-slate-200/50 dark:border-slate-800/50 flex justify-between items-center pt-2.5 pb-8 px-8 shadow-[0_-8px_30px_rgba(0,0,0,0.04)] rounded-t-[3rem]">
           {navItems.map(({ href, icon: Icon, label, isCenter }) => {
             const isActive = pathname === href;
 
             if (isCenter) {
-              return <div key="spacer" className="w-16 h-10" />;
+              return <div key="spacer" className="w-14 h-10" />;
             }
 
             if (!Icon) return null;
@@ -120,21 +124,21 @@ export function BottomNav() {
               <Link
                 key={href}
                 href={href}
-                className={`flex flex-col items-center gap-1 group/item transition-all duration-200 ${isActive
-                    ? "text-primary translate-y-[-2px]"
-                    : "text-foreground/30 hover:text-foreground/60"
+                className={`flex flex-col items-center gap-1.5 transition-all duration-300 relative ${isActive ? "text-primary -translate-y-1" : "text-foreground/30"
                   }`}
               >
-                <div className={`p-2 rounded-[1.2rem] transition-all duration-300 ${isActive
-                    ? "bg-primary/10 shadow-inner"
-                    : "bg-transparent group-hover/item:bg-slate-100 dark:group-hover/item:bg-slate-800"
-                  }`}>
-                  <Icon size={22} strokeWidth={isActive ? 2.5 : 2} className="transition-transform duration-300 group-hover/item:scale-110" />
+                <div className={`transition-all duration-300 ${isActive ? "scale-110" : "scale-100"}`}>
+                  <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
                 </div>
-                <span className={`text-[9px] font-black uppercase tracking-[0.1em] transition-all duration-300 ${isActive ? "opacity-100 scale-100" : "opacity-0 scale-75"
+                <span className={`text-[9px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${isActive ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
                   }`}>
                   {label}
                 </span>
+
+                {/* Active Indicator Dot */}
+                {isActive && (
+                  <div className="absolute -bottom-2 w-1 h-1 bg-primary rounded-full animate-in zoom-in" />
+                )}
               </Link>
             );
           })}

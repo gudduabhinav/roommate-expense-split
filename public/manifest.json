@@ -1,14 +1,20 @@
 {
   "name": "SplitSmart",
   "short_name": "SplitSmart",
-  "description": "Roommate Expense Splitter",
+  "description": "Premium Roommate Expense Splitter",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#6366f1",
+  "background_color": "#ffffff",
   "theme_color": "#6366f1",
   "orientation": "portrait",
   "scope": "/",
   "icons": [
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
@@ -20,6 +26,15 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/hero-illustration.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Homescreen of SplitSmart"
     }
   ]
 }
