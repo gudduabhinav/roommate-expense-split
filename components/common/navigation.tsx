@@ -2,41 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, Plus, BarChart3, User, Wallet, Settings, LogOut } from "lucide-react";
+import { Home, Users, Plus, BarChart3, User, Wallet, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 export function Navigation() {
-  const pathname = usePathname();
-
-  const navItems = [
-    { href: "/dashboard", icon: Home, label: "Home" },
-    { href: "/groups", icon: Users, label: "Groups" },
-    { href: "/add-expense", icon: Plus, label: "Add" },
-    { href: "/analytics", icon: BarChart3, label: "Analytics" },
-    { href: "/profile", icon: User, label: "Profile" },
-  ];
-
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 md:hidden">
-      <div className="flex justify-around py-2">
-        {navItems.map(({ href, icon: Icon, label }) => {
-          const isActive = pathname === href;
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex flex-col items-center gap-1 py-2 px-4 rounded-xl transition-colors ${
-                isActive ? "text-primary" : "text-foreground/40"
-              }`}
-            >
-              <Icon size={20} />
-              <span className="text-xs font-medium">{label}</span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+    <>
+      <Sidebar />
+      <BottomNav />
+    </>
   );
 }
 
@@ -67,7 +42,7 @@ export function Sidebar() {
           <span className="text-xl font-bold font-poppins text-primary">SplitSmart</span>
         </Link>
       </div>
-      
+
       <nav className="flex-1 px-4 space-y-2">
         {navItems.map(({ href, icon: Icon, label }) => {
           const isActive = pathname === href;
@@ -75,11 +50,10 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                isActive 
-                  ? "bg-primary text-white" 
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive
+                  ? "bg-primary text-white shadow-lg shadow-primary/20"
                   : "text-foreground/60 hover:bg-slate-50 dark:hover:bg-slate-800"
-              }`}
+                }`}
             >
               <Icon size={20} />
               <span className="font-medium">{label}</span>
@@ -87,7 +61,7 @@ export function Sidebar() {
           );
         })}
       </nav>
-      
+
       <div className="p-4 border-t border-slate-200 dark:border-slate-800">
         <button
           onClick={handleLogout}
@@ -113,37 +87,48 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 md:hidden">
-      <div className="flex justify-around items-center py-2 px-4">
-        {navItems.map(({ href, icon: Icon, label, isCenter }) => {
-          const isActive = pathname === href;
-          
-          if (isCenter) {
+    <nav className="fixed bottom-0 left-0 right-0 z-[100] md:hidden">
+      <div className="relative">
+        {/* Floating Action Button */}
+        <div className="absolute left-1/2 -translate-x-1/2 -top-8 z-[110]">
+          <Link
+            href="/add-expense"
+            className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary via-indigo-600 to-secondary rounded-full shadow-[0_8px_25px_-5px_rgba(99,102,241,0.5)] border-4 border-white dark:border-slate-900 transition-all duration-300 hover:scale-110 active:scale-95 group"
+          >
+            <Plus size={32} className="text-white group-hover:rotate-90 transition-transform duration-300" />
+            {/* Glow Effect */}
+            <div className="absolute -inset-2 bg-primary/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity -z-10" />
+          </Link>
+        </div>
+
+        {/* Navigation Bar */}
+        <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 flex justify-around items-center py-3 px-2 pb-safe shadow-[0_-1px_10px_rgba(0,0,0,0.05)]">
+          {navItems.map(({ href, icon: Icon, label, isCenter }) => {
+            const isActive = pathname === href;
+
+            if (isCenter) {
+              return <div key="spacer" className="w-16 h-10" />;
+            }
+
             return (
               <Link
                 key={href}
                 href={href}
-                className="relative -top-4 bg-gradient-to-r from-primary to-secondary p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 active:scale-95"
+                className={`flex flex-col items-center gap-1 transition-all duration-200 ${isActive
+                    ? "text-primary scale-110"
+                    : "text-foreground/40 hover:text-foreground/60"
+                  }`}
               >
-                <Icon size={24} className="text-white" />
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-full blur opacity-30 animate-pulse" />
+                <div className={`p-1.5 rounded-xl ${isActive ? "bg-primary/10" : "bg-transparent"}`}>
+                  <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                </div>
+                <span className={`text-[10px] font-bold uppercase tracking-tighter ${isActive ? "opacity-100" : "opacity-0"}`}>
+                  {label}
+                </span>
               </Link>
             );
-          }
-          
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-colors ${
-                isActive ? "text-primary" : "text-foreground/40"
-              }`}
-            >
-              <Icon size={20} />
-              <span className="text-xs font-medium">{label}</span>
-            </Link>
-          );
-        })}
+          })}
+        </div>
       </div>
     </nav>
   );

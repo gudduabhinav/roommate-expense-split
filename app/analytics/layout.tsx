@@ -1,4 +1,4 @@
-import { Sidebar, BottomNav } from "@/components/common/navigation";
+import { Navigation } from "@/components/common/navigation";
 
 export default function AnalyticsLayout({
     children,
@@ -6,12 +6,13 @@ export default function AnalyticsLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex min-h-screen bg-[#f8fafc] dark:bg-[#0f172a]">
-            <Sidebar />
-            <main className="flex-grow pb-24 md:pb-0 relative">
-                {children}
-                <BottomNav />
-            </main>
+        <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950">
+            <Navigation />
+            <div className="flex-1 flex flex-col min-w-0">
+                <main className="flex-1 pb-24 md:pb-8 pt-6 px-4 md:px-8">
+                    {children}
+                </main>
+            </div>
         </div>
     );
 }
