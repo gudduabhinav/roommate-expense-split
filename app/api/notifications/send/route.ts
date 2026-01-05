@@ -2,15 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { supabase } from '@/lib/supabase/client';
 
-webpush.setVapidDetails(
-  process.env.VAPID_EMAIL!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+// Only set VAPID details if all environment variables are present
+if (process.env.VAPID_EMAIL && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    `mailto:${process.env.VAPID_EMAIL}`,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
     const { userIds, title, body, data } = await request.json();
+
+    // Check if VAPID is configured
+    if (!process.env.VAPID_EMAIL || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+      console.log('VAPID not configured, skipping push notifications');
+      return NextResponse.json({ message: 'Push notifications not configured' }, { status: 200 });
+    }
 
     const { data: subscriptions } = await supabase
       .from('push_subscriptions')
