@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Camera, IndianRupee, Save, Users, ChevronDown, Loader2, Check, AlertCircle, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useGroupNotifications } from "@/lib/hooks/useGroupNotifications";
 import { supabase } from "@/lib/supabase/client";
 
 const CATEGORIES = [

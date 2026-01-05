@@ -26,10 +26,56 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    // Simple network-first strategy for development, can be optimized later
     event.respondWith(
         fetch(event.request).catch(() => {
             return caches.match(event.request);
         })
     );
+});
+
+// Push Notification Handlers
+self.addEventListener('push', function(event) {
+    if (event.data) {
+        const data = event.data.json();
+        const options = {
+            body: data.body,
+            icon: data.icon || '/icons/icon-512x512.png',
+            badge: data.badge || '/icons/icon-512x512.png',
+            data: data.data,
+            actions: [
+                {
+                    action: 'view',
+                    title: 'View',
+                    icon: '/icons/icon-512x512.png'
+                }
+            ]
+        };
+        
+        event.waitUntil(
+            self.registration.showNotification(data.title, options)
+        );
+    }
+});
+
+self.addEventListener('notificationclick', function(event) {
+    event.notification.close();
+    
+    if (event.action === 'view' || !event.action) {
+        const urlToOpen = event.notification.data?.url || '/dashboard';
+        
+        event.waitUntil(
+            clients.matchAll({ type: 'window', includeUncontrolled: true })
+                .then(function(clientList) {
+                    for (let i = 0; i < clientList.length; i++) {
+                        const client = clientList[i];
+                        if (client.url.includes(urlToOpen) && 'focus' in client) {
+                            return client.focus();
+                        }
+                    }
+                    if (clients.openWindow) {
+                        return clients.openWindow(urlToOpen);
+                    }
+                })
+        );
+    }
 });

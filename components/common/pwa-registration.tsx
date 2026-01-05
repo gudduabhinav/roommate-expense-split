@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { notificationService } from "@/lib/notifications/service";
 
 export function PWARegistration() {
     useEffect(() => {
@@ -13,6 +14,9 @@ export function PWARegistration() {
                     .register("/sw.js")
                     .then((reg) => {
                         console.log("Service Worker registered");
+                        // Initialize notifications
+                        notificationService.initialize();
+                        notificationService.subscribeToPush();
                     })
                     .catch((err) => console.log("Service Worker registration failed", err));
             });

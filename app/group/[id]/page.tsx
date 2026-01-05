@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, MoreVertical, Plus, Receipt, TrendingUp, History, Users as UsersIcon, Loader2, Share2, Copy, CheckCircle2, Trash2, UserMinus, ArrowUpRight, ArrowDownLeft, Calendar, Mail, QrCode } from "lucide-react";
+import { ArrowLeft, MoreVertical, Plus, Receipt, TrendingUp, History, Users as UsersIcon, Loader2, Share2, Copy, CheckCircle2, Trash2, UserMinus, ArrowUpRight, ArrowDownLeft, Calendar, Mail, Search, UserPlus, X } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -31,6 +31,13 @@ export default function GroupDetailPage() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showInviteOptions, setShowInviteOptions] = useState(false);
 
+    // Manual Add Member States
+    const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [addingUser, setAddingUser] = useState<string | null>(null);
+
     const fetchData = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -44,28 +51,41 @@ export default function GroupDetailPage() {
                 .single();
 
             if (groupData) setGroup(groupData);
+            if (groupError) console.error("Group Fetch Error:", groupError);
 
-            // Fetch Members & User's Role
-            const { data: membersData } = await supabase
+            // Fetch Members
+            const { data: membersRaw, error: membersError } = await supabase
                 .from('group_members')
-                .select(`
-                    *,
-                    profiles:user_id(*)
-                `)
+                .select('*')
                 .eq('group_id', id);
 
-            if (membersData) {
-                setMembers(membersData);
-                const currentUserMember = membersData.find(m => m.user_id === user.id);
+            if (membersError) console.error("Members Fetch Error:", membersError);
+
+            if (membersRaw) {
+                // Fetch Profiles specially
+                const userIds = membersRaw.map(m => m.user_id);
+                const { data: profilesData } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .in('id', userIds);
+
+                const mergedMembers = membersRaw.map(m => ({
+                    ...m,
+                    profiles: profilesData?.find(p => p.id === m.user_id) || null
+                }));
+
+                setMembers(mergedMembers);
+
+                const currentUserMember = mergedMembers.find(m => m.user_id === user.id);
                 if (currentUserMember) setUserRole(currentUserMember.role);
             }
 
             // Fetch Expenses
-            const { data: expensesData } = await supabase
+            const { data: expensesData, error: expensesError } = await supabase
                 .from('expenses')
                 .select('*')
                 .eq('group_id', id)
-                .order('date', { ascending: false });
+                .order('created_at', { ascending: false });
 
             if (expensesData) setExpenses(expensesData);
         } catch (err) {
@@ -74,6 +94,7 @@ export default function GroupDetailPage() {
     };
 
     useEffect(() => {
+        let mounted = true;
         async function init() {
             setLoading(true);
             const { data: { user } } = await supabase.auth.getUser();
@@ -81,8 +102,8 @@ export default function GroupDetailPage() {
                 router.push('/auth');
                 return;
             }
-            await fetchData();
-            setLoading(false);
+            if (mounted) await fetchData();
+            if (mounted) setLoading(false);
         }
         init();
 
@@ -97,14 +118,53 @@ export default function GroupDetailPage() {
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'expenses', filter: `group_id=eq.${id}` },
-                () => fetchData()
+                () => {
+                    fetchData();
+                    router.refresh();
+                }
             )
             .subscribe();
 
         return () => {
+            mounted = false;
             supabase.removeChannel(channel);
         };
     }, [id, router]);
+
+    // Search Users Effect
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(async () => {
+            if (searchQuery.trim().length < 2) {
+                setSearchResults([]);
+                return;
+            }
+
+            setIsSearching(true);
+            try {
+                // Search by email or name
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .or(`full_name.ilike.%${searchQuery}%, email.ilike.%${searchQuery}%`, { foreignTable: "profiles" })
+                    // Fallback to searching by full name if email isn't available
+                    .ilike('full_name', `%${searchQuery}%`)
+                    .limit(5);
+
+                if (data) {
+                    // Filter out existing members
+                    const existingIds = new Set(members.map(m => m.user_id));
+                    setSearchResults(data.filter(u => !existingIds.has(u.id)));
+                }
+            } catch (error) {
+                console.error("Search error", error);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery, members]);
+
 
     const copyInviteLink = () => {
         if (!group?.invite_code) return;
@@ -165,6 +225,31 @@ export default function GroupDetailPage() {
         }
     };
 
+    const handleAddMember = async (userId: string) => {
+        setAddingUser(userId);
+        try {
+            const { error } = await supabase
+                .from('group_members')
+                .insert([{
+                    group_id: id,
+                    user_id: userId,
+                    role: 'member'
+                }]);
+
+            if (error) throw error;
+
+            // Success
+            setSearchQuery("");
+            setSearchResults([]);
+            setIsAddMemberOpen(false);
+            fetchData(); // Refresh list immediately
+        } catch (error: any) {
+            alert("Failed to add member: " + error.message);
+        } finally {
+            setAddingUser(null);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -186,37 +271,107 @@ export default function GroupDetailPage() {
     const isOwner = userRole === 'owner';
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-32 text-foreground">
-            {/* Header section */}
-            <div className="bg-gradient-to-br from-primary to-secondary p-4 md:p-12 pb-24 text-white relative h-80 md:h-72 overflow-hidden shadow-2xl">
-                <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-32 text-foreground relative">
 
-                <div className="max-w-5xl mx-auto flex justify-between items-start relative z-10 pt-4 md:pt-0">
-                    <Link href="/groups" className="bg-white/20 p-2 rounded-xl backdrop-blur-md hover:bg-white/30 transition-colors">
+            {/* Add Member Modal */}
+            {isAddMemberOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-md p-6 rounded-[2rem] shadow-2xl border border-slate-100 dark:border-slate-800 space-y-6">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-xl font-bold font-poppins">Add New User</h2>
+                            <button onClick={() => setIsAddMemberOpen(false)} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-slate-200 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="relative">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={20} />
+                                <input
+                                    type="text"
+                                    placeholder="Search by name..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    autoFocus
+                                    className="w-full bg-slate-50 dark:bg-slate-800/50 border-none rounded-2xl py-4 pl-12 pr-4 font-medium focus:ring-2 focus:ring-primary/20 transition-all outline-none text-slate-900 dark:text-white"
+                                />
+                            </div>
+
+                            <div className="max-h-60 overflow-y-auto space-y-2">
+                                {isSearching && (
+                                    <div className="flex justify-center py-4">
+                                        <Loader2 className="animate-spin text-primary" />
+                                    </div>
+                                )}
+
+                                {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
+                                    <p className="text-center text-foreground/40 text-sm py-4">No users found.</p>
+                                )}
+
+                                {searchResults.map(user => (
+                                    <button
+                                        key={user.id}
+                                        onClick={() => handleAddMember(user.id)}
+                                        disabled={addingUser === user.id}
+                                        className="w-full p-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors text-left group"
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden shrink-0">
+                                            <img src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.first_name}`} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="flex-grow">
+                                            <p className="font-bold text-sm text-slate-900 dark:text-white">{user.full_name || 'User'}</p>
+                                        </div>
+                                        {addingUser === user.id ? (
+                                            <Loader2 size={16} className="animate-spin text-primary" />
+                                        ) : (
+                                            <Plus size={20} className="text-foreground/20 group-hover:text-primary transition-colors" />
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                                <p className="text-xs text-center text-foreground/30">User must have an account on Roomie to be added.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Header section */}
+            <div className="bg-gradient-to-br from-primary to-secondary p-4 md:p-12 pb-24 text-white relative h-80 md:h-72 shadow-2xl">
+                <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+
+                {/* Top Bar with High Z-Index to overlap Balance Card if dropdown opens */}
+                <div className="max-w-5xl mx-auto flex justify-between items-start relative z-50 pt-4 md:pt-0">
+                    <Link href="/dashboard" className="bg-white/20 p-2 rounded-xl backdrop-blur-md hover:bg-white/30 transition-colors">
                         <ArrowLeft size={20} />
                     </Link>
                     <div className="flex gap-2">
-                        <button onClick={() => setShowInviteOptions(!showInviteOptions)} className="bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md hover:bg-white/30 transition-all flex items-center gap-2 font-bold text-[10px] md:text-xs uppercase tracking-widest relative">
-                            <Plus size={16} /> Invite
-                        </button>
+                        {/* Invite Button Group */}
+                        <div className="relative">
+                            <button onClick={() => setShowInviteOptions(!showInviteOptions)} className="bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md hover:bg-white/30 transition-all flex items-center gap-2 font-bold text-[10px] md:text-xs uppercase tracking-widest">
+                                <Plus size={16} /> Invite
+                            </button>
 
-                        {/* Dropdown for Invite Options */}
-                        {showInviteOptions && (
-                            <div className="absolute top-14 right-16 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-2 text-foreground z-[50] animate-in fade-in slide-in-from-top-2">
-                                <button onClick={copyInviteLink} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-3 w-full text-left transition-colors">
-                                    {copied ? <CheckCircle2 size={16} className="text-green-500" /> : <Copy size={16} />}
-                                    <span className="text-xs font-bold">Copy Link</span>
-                                </button>
-                                <button onClick={handleShare} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-3 w-full text-left transition-colors">
-                                    <Share2 size={16} />
-                                    <span className="text-xs font-bold">Share via...</span>
-                                </button>
-                                <a href={`mailto:?subject=Join ${group.name}&body=Join my circle using code: ${group.invite_code}`} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-3 w-full text-left transition-colors">
-                                    <Mail size={16} />
-                                    <span className="text-xs font-bold">Email</span>
-                                </a>
-                            </div>
-                        )}
+                            {/* Dropdown for Invite Options */}
+                            {showInviteOptions && (
+                                <div className="absolute top-12 right-0 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 p-2 text-foreground z-[100] animate-in fade-in slide-in-from-top-2">
+                                    <button onClick={copyInviteLink} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-3 w-full text-left transition-colors">
+                                        {copied ? <CheckCircle2 size={16} className="text-green-500" /> : <Copy size={16} />}
+                                        <span className="text-xs font-bold text-slate-900 dark:text-white">Copy Link</span>
+                                    </button>
+                                    <button onClick={handleShare} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-3 w-full text-left transition-colors">
+                                        <Share2 size={16} />
+                                        <span className="text-xs font-bold text-slate-900 dark:text-white">Share via...</span>
+                                    </button>
+                                    <a href={`mailto:?subject=Join ${group.name}&body=Join my circle using code: ${group.invite_code}`} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-3 w-full text-left transition-colors">
+                                        <Mail size={16} />
+                                        <span className="text-xs font-bold text-slate-900 dark:text-white">Email Invite</span>
+                                    </a>
+                                </div>
+                            )}
+                        </div>
 
                         {isOwner && (
                             <div className="relative">
@@ -242,6 +397,7 @@ export default function GroupDetailPage() {
                     </div>
                 </div>
 
+                {/* Content Section (Lower Z-Index than Top Bar) */}
                 <div className="max-w-5xl mx-auto mt-6 md:mt-8 flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10 px-2 md:px-0">
                     <div className="space-y-4">
                         <div className="flex items-center gap-3">
@@ -254,7 +410,7 @@ export default function GroupDetailPage() {
                         <div className="flex items-center gap-3">
                             <div className="flex -space-x-3">
                                 {members.slice(0, 5).map((m, i) => (
-                                    <div key={i} className="w-8 h-8 rounded-full border-2 border-primary bg-slate-200 overflow-hidden">
+                                    <div key={i} className="w-8 h-8 rounded-full border-2 border-primary bg-slate-200 overflow-hidden text-slate-900">
                                         <img src={m.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.profiles?.first_name || 'User'}`} className="w-full h-full object-cover" />
                                     </div>
                                 ))}
@@ -277,7 +433,7 @@ export default function GroupDetailPage() {
             </div>
 
             <div className="max-w-5xl mx-auto px-2 md:px-4 -mt-8 space-y-10 relative z-10">
-                {/* Members list */}
+                {/* Members list & Add Button */}
                 <div className="flex gap-4 overflow-x-auto pb-4 px-1 hide-scrollbar">
                     {members.map((member) => (
                         <div key={member.id} className="relative group shrink-0">
@@ -306,11 +462,16 @@ export default function GroupDetailPage() {
                             )}
                         </div>
                     ))}
-                    <button onClick={() => setShowInviteOptions(true)} className="shrink-0 w-48 md:w-52 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-foreground/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all">
-                        <div className="p-3 rounded-full border-2 border-current">
-                            <Plus size={32} />
+
+                    {/* Add Member Button (Replaces the specific Invite Card) */}
+                    <button onClick={() => setIsAddMemberOpen(true)} className="shrink-0 w-48 md:w-52 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-foreground/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all group">
+                        <div className="p-4 rounded-full border-2 border-current group-hover:scale-110 transition-transform">
+                            <UserPlus size={32} />
                         </div>
-                        <span className="font-black text-[10px] uppercase tracking-widest">Invite Friend</span>
+                        <div className="text-center">
+                            <span className="font-black text-[10px] uppercase tracking-widest block">Add Member</span>
+                            <span className="text-[10px] opacity-50 block mt-1">Select from users</span>
+                        </div>
                     </button>
                 </div>
 
