@@ -75,6 +75,7 @@ CREATE POLICY "Anyone can join with invite" ON group_members FOR INSERT WITH CHE
 
 CREATE POLICY "Members can view expenses" ON expenses FOR SELECT USING (
   EXISTS (SELECT 1 FROM group_members WHERE group_members.group_id = expenses.group_id AND group_members.user_id = auth.uid())
+  OR auth.uid() = (SELECT created_by FROM groups WHERE groups.id = expenses.group_id)
 );
 CREATE POLICY "Members can add expenses" ON expenses FOR INSERT WITH CHECK (
   EXISTS (SELECT 1 FROM group_members WHERE group_members.group_id = expenses.group_id AND group_members.user_id = auth.uid())
@@ -82,6 +83,7 @@ CREATE POLICY "Members can add expenses" ON expenses FOR INSERT WITH CHECK (
 
 CREATE POLICY "Members can view splits" ON expense_splits FOR SELECT USING (
   EXISTS (SELECT 1 FROM expenses JOIN group_members ON expenses.group_id = group_members.group_id WHERE expenses.id = expense_splits.expense_id AND group_members.user_id = auth.uid())
+  OR EXISTS (SELECT 1 FROM expenses JOIN groups ON expenses.group_id = groups.id WHERE expenses.id = expense_splits.expense_id AND groups.created_by = auth.uid())
 );
 CREATE POLICY "Members can add splits" ON expense_splits FOR INSERT WITH CHECK (
   EXISTS (SELECT 1 FROM expenses JOIN group_members ON expenses.group_id = group_members.group_id WHERE expenses.id = expense_splits.expense_id AND group_members.user_id = auth.uid())

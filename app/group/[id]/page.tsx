@@ -569,7 +569,16 @@ export default function GroupDetailPage() {
                         <div className="space-y-6">
                             <div className="flex justify-between items-center px-4 md:px-6">
                                 <h2 className="text-2xl font-bold font-poppins text-slate-900 dark:text-white">Group Ledger</h2>
-                                <p className="text-[10px] font-black text-foreground/20 uppercase tracking-[0.2em]">{expenses.length} Records</p>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => fetchData()}
+                                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-foreground/40"
+                                        title="Refresh Ledger"
+                                    >
+                                        <History size={18} />
+                                    </button>
+                                    <p className="text-[10px] font-black text-foreground/20 uppercase tracking-[0.2em]">{expenses.length} Records</p>
+                                </div>
                             </div>
 
                             {expenses.length === 0 ? (

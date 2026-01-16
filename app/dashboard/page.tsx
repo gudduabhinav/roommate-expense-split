@@ -114,7 +114,12 @@ export default function DashboardPage() {
                     </Link>
                     <div>
                         <h1 className="text-xl md:text-3xl font-bold font-poppins text-slate-900 dark:text-white leading-none">Dashboard</h1>
-                        <p className="text-foreground/40 text-xs md:text-sm font-medium mt-1">Hello, {user?.first_name} 👋</p>
+                        <div className="flex items-center gap-2 mt-1">
+                            <p className="text-foreground/40 text-xs md:text-sm font-medium">Hello, {user?.first_name} 👋</p>
+                            <button onClick={() => fetchDashboardData()} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors opacity-40">
+                                <History size={14} />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
