@@ -5,6 +5,7 @@ import { ArrowLeft, MoreVertical, Plus, Receipt, TrendingUp, History, Users as U
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import { useGroupNotifications } from "@/lib/hooks/useGroupNotifications";
 
 const CATEGORIES = [
     { id: "Dining", icon: "🍴", label: "Dining" },
@@ -37,6 +38,7 @@ export default function GroupDetailPage() {
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [addingUser, setAddingUser] = useState<string | null>(null);
+    const { sendMemberNotification } = useGroupNotifications();
 
     const fetchData = async () => {
         try {
@@ -212,6 +214,10 @@ export default function GroupDetailPage() {
         if (!confirm("Remove this member from the circle?")) return;
 
         try {
+            // Get member's name before deleting
+            const removedMember = members.find(m => m.user_id === memberUserId);
+            const memberName = removedMember?.profiles?.full_name || 'A member';
+
             const { error } = await supabase
                 .from('group_members')
                 .delete()
@@ -219,6 +225,10 @@ export default function GroupDetailPage() {
                 .eq('user_id', memberUserId);
 
             if (error) throw error;
+
+            // Send notification
+            await sendMemberNotification(id as string, memberName, 'left');
+
             setMembers(members.filter(m => m.user_id !== memberUserId));
         } catch (err: any) {
             alert(err.message);
@@ -237,6 +247,16 @@ export default function GroupDetailPage() {
                 }]);
 
             if (error) throw error;
+
+            // Get new member's name for notification
+            const { data: newMemberProfile } = await supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', userId)
+                .single();
+
+            const memberName = newMemberProfile?.full_name || 'A new member';
+            await sendMemberNotification(id as string, memberName, 'joined');
 
             // Success
             setSearchQuery("");
@@ -261,7 +281,7 @@ export default function GroupDetailPage() {
     if (!group) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-center p-6 text-foreground">
-                <h1 className="text-2xl font-bold font-poppins">Circle not found</h1>
+                <h1 className="text-2xl font-bold font-poppins">Group not found</h1>
                 <p className="text-foreground/40 text-sm">You might not have access or it has been deleted.</p>
                 <Link href="/groups" className="text-primary font-bold hover:underline">Return to Groups</Link>
             </div>
@@ -388,7 +408,7 @@ export default function GroupDetailPage() {
                                             onClick={handleDeleteGroup}
                                             className="w-full flex items-center gap-2 px-4 py-3 text-danger hover:bg-danger/5 rounded-xl transition-colors font-bold text-sm"
                                         >
-                                            <Trash2 size={16} /> Delete Circle
+                                            <Trash2 size={16} /> Delete Group
                                         </button>
                                     </div>
                                 )}
@@ -421,12 +441,12 @@ export default function GroupDetailPage() {
                                 )}
                             </div>
                             <p className="text-white/70 flex items-center gap-2 font-medium text-sm">
-                                {members.length} Members • {isOwner ? 'Circle Owner' : 'Member'}
+                                {members.length} Members • {isOwner ? 'Group Owner' : 'Member'}
                             </p>
                         </div>
                     </div>
                     <div className="bg-white/10 backdrop-blur-lg rounded-[2.5rem] p-6 md:p-8 border border-white/20 shadow-2xl">
-                        <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Circle Net Balance</p>
+                        <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Group Net Balance</p>
                         <p className="text-3xl md:text-4xl font-bold font-poppins">₹{(group.total || 0).toLocaleString()}</p>
                     </div>
                 </div>

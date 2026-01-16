@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { PWARegistration } from "@/components/common/pwa-registration";
+import { NotificationInitializer } from "@/components/common/notification-initializer";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -48,6 +49,7 @@ export default function RootLayout({
         className={`${inter.variable} ${poppins.variable} font-sans antialiased`}
       >
         <PWARegistration />
+        <NotificationInitializer />
         {children}
       </body>
     </html>

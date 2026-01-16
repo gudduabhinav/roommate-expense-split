@@ -102,18 +102,18 @@ export default function NewGroupPage() {
         <div className="max-w-2xl mx-auto px-2 py-4 md:p-10 space-y-8 pb-32">
             <Link href="/groups" className="flex items-center gap-2 text-foreground/50 hover:text-primary transition-colors group w-fit ml-2">
                 <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-                <span className="font-bold font-poppins text-[10px] uppercase tracking-widest">Circles</span>
+                <span className="font-bold font-poppins text-[10px] uppercase tracking-widest">Groups</span>
             </Link>
 
             <div className="space-y-3 px-2">
-                <h1 className="text-4xl md:text-5xl font-bold font-poppins tracking-tight text-slate-900 dark:text-white">New Circle</h1>
+                <h1 className="text-4xl md:text-5xl font-bold font-poppins tracking-tight text-slate-900 dark:text-white">New Group</h1>
                 <p className="text-foreground/50 text-lg">Give your squad a name and choose its vibe.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 p-6 md:p-12 rounded-[3rem] md:rounded-[3.5rem] card-shadow border border-slate-100 dark:border-slate-800 space-y-10 animate-in fade-in slide-in-from-bottom duration-700 mx-1 md:mx-0">
                 {/* Name Input */}
                 <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30 block ml-4">Circle Name</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30 block ml-4">Group Name</label>
                     <div className="relative group">
                         <Users className="absolute left-6 top-1/2 -translate-y-1/2 text-foreground/20 group-focus-within:text-primary transition-colors" size={24} />
                         <input
@@ -160,7 +160,7 @@ export default function NewGroupPage() {
                         <Loader2 className="animate-spin" size={28} />
                     ) : (
                         <>
-                            Create Circle <ArrowRight size={24} />
+                            Create Group <ArrowRight size={24} />
                         </>
                     )}
                 </button>

@@ -41,7 +41,7 @@ export default function GroupsPage() {
         return (
             <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 text-foreground">
                 <Loader2 className="w-12 h-12 text-primary animate-spin" />
-                <p className="text-foreground/40 font-medium animate-pulse uppercase tracking-widest text-xs">Loading circles...</p>
+                <p className="text-foreground/40 font-medium animate-pulse uppercase tracking-widest text-xs">Loading groups...</p>
             </div>
         );
     }
@@ -85,7 +85,7 @@ export default function GroupsPage() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={20} />
                     <input
                         type="text"
-                        placeholder="Search your circles..."
+                        placeholder="Search your groups..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full bg-white dark:bg-slate-800 border-none rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all outline-none card-shadow"

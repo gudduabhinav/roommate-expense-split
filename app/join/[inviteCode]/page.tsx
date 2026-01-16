@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Users, CheckCircle2, Loader2, ArrowRight, ShieldAlert, Sparkles, LogIn } from "lucide-react";
 import Link from "next/link";
+import { useGroupNotifications } from "@/lib/hooks/useGroupNotifications";
 
 export default function JoinGroupPage() {
     const { inviteCode } = useParams();
@@ -15,6 +16,7 @@ export default function JoinGroupPage() {
     const [error, setError] = useState<string | null>(null);
     const [alreadyMember, setAlreadyMember] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+    const { sendMemberNotification } = useGroupNotifications();
 
     useEffect(() => {
         async function checkSession() {
@@ -41,7 +43,7 @@ export default function JoinGroupPage() {
                     .single();
 
                 if (groupError || !groupData) {
-                    setError("Invalid invite link or the circle was deleted. Please check the code and try again.");
+                    setError("Invalid invite link or the group was deleted. Please check the code and try again.");
                     setLoading(false);
                     return;
                 }
@@ -99,6 +101,16 @@ export default function JoinGroupPage() {
                 } else {
                     throw joinError;
                 }
+            } else {
+                // Successfully joined - send notification
+                const { data: userProfile } = await supabase
+                    .from('profiles')
+                    .select('full_name')
+                    .eq('id', user.id)
+                    .single();
+
+                const userName = userProfile?.full_name || 'A new member';
+                await sendMemberNotification(group.id, userName, 'joined');
             }
 
             router.push(`/group/${group.id}`);
@@ -153,17 +165,17 @@ export default function JoinGroupPage() {
                     <div className="space-y-3 px-2">
                         <div className="flex items-center justify-center gap-2">
                             <Sparkles size={16} className="text-primary animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">New Circle Invite</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">New Group Invite</span>
                         </div>
                         <h1 className="text-3xl md:text-4xl font-black font-poppins tracking-tight text-slate-900 dark:text-white">Join {group.name}</h1>
-                        <p className="text-foreground/40 text-sm font-medium">Click below to participate in this circle.</p>
+                        <p className="text-foreground/40 text-sm font-medium">Click below to participate in this group.</p>
                     </div>
                 </div>
 
                 <div className="p-6 md:p-8 bg-slate-50 dark:bg-slate-800/40 rounded-[2.5rem] border border-slate-100 dark:border-slate-800/50 space-y-6">
                     <div className="flex justify-between items-center text-left">
                         <div>
-                            <p className="text-[10px] font-black uppercase text-foreground/20 tracking-widest mb-1">Circle Category</p>
+                            <p className="text-[10px] font-black uppercase text-foreground/20 tracking-widest mb-1">Group Category</p>
                             <p className="font-bold text-lg text-slate-900 dark:text-white transition-all">{group.category || 'General'}</p>
                         </div>
                         <div className="text-right">
@@ -177,7 +189,7 @@ export default function JoinGroupPage() {
                     <div className="space-y-6 px-2">
                         <div className="p-6 bg-amber-50 dark:bg-amber-900/10 rounded-3xl border border-amber-200 dark:border-amber-800/50 text-left">
                             <p className="text-sm font-bold text-amber-800 dark:text-amber-400">Login Required</p>
-                            <p className="text-xs text-amber-700/60 dark:text-amber-500/60">Please log in to your account to join this circle.</p>
+                            <p className="text-xs text-amber-700/60 dark:text-amber-500/60">Please log in to your account to join this group.</p>
                         </div>
                         <button
                             onClick={handleJoin}
@@ -192,7 +204,7 @@ export default function JoinGroupPage() {
                             <div className="w-10 h-10 bg-success/20 rounded-full flex items-center justify-center shrink-0">
                                 <CheckCircle2 size={24} className="text-success" />
                             </div>
-                            <p className="text-sm font-bold text-success/80">You're already in this circle!</p>
+                            <p className="text-sm font-bold text-success/80">You're already in this group!</p>
                         </div>
                         <Link
                             href={`/group/${group.id}`}

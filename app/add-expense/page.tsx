@@ -30,6 +30,7 @@ export default function AddExpensePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const router = useRouter();
+    const { sendExpenseNotification } = useGroupNotifications();
 
     useEffect(() => {
         async function fetchGroups() {
@@ -41,25 +42,21 @@ export default function AddExpensePage() {
                     return;
                 }
 
-                // Simplified query to avoid RLS joins
-                const { data: membershipData, error: memError } = await supabase
-                    .from('group_members')
-                    .select('group_id')
-                    .eq('user_id', user.id);
+                // Fetch groups directly (same as groups page)
+                const { data: groupsData, error: groupsError } = await supabase
+                    .from('groups')
+                    .select('id, name, category')
+                    .order('created_at', { ascending: false });
 
-                if (memError) throw memError;
+                if (groupsError) {
+                    console.error("Groups fetch error:", groupsError);
+                }
 
-                if (membershipData && membershipData.length > 0) {
-                    const groupIds = membershipData.map(m => m.group_id);
-                    const { data: groupsData, error: groupsError } = await supabase
-                        .from('groups')
-                        .select('id, name')
-                        .in('id', groupIds);
-
-                    if (groupsError) throw groupsError;
-
-                    setGroups(groupsData || []);
-                    if (groupsData && groupsData.length > 0) setSelectedGroup(groupsData[0].id);
+                if (groupsData && groupsData.length > 0) {
+                    setGroups(groupsData);
+                    setSelectedGroup(groupsData[0].id);
+                } else {
+                    setGroups([]);
                 }
             } catch (err: any) {
                 console.error("Fetch Groups Error:", err);
@@ -132,6 +129,16 @@ export default function AddExpensePage() {
                 if (notifications.length > 0) {
                     await supabase.from('notifications').insert(notifications);
                 }
+
+                // Send Push Notifications via notification service
+                const { data: userProfile } = await supabase
+                    .from('profiles')
+                    .select('full_name')
+                    .eq('id', user.id)
+                    .single();
+
+                const userName = userProfile?.full_name || 'Someone';
+                await sendExpenseNotification(selectedGroup, title, parseFloat(amount), userName);
             }
 
             router.push(`/group/${selectedGroup}`);
@@ -209,13 +216,13 @@ export default function AddExpensePage() {
 
                     {/* Group Selection */}
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase tracking-widest ml-4 text-foreground/40">Select Circle</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest ml-4 text-foreground/40">Select Group</label>
                         {groups.length === 0 ? (
                             <div className="p-6 bg-amber-50 dark:bg-amber-900/20 rounded-[1.5rem] border border-amber-200 dark:border-amber-800/50 flex items-center gap-4 text-amber-800 dark:text-amber-400 font-bold">
                                 <AlertCircle className="shrink-0" size={20} />
                                 <div>
-                                    <p className="text-sm">No Circles Found</p>
-                                    <Link href="/groups/new" className="text-xs underline">Create or Join a circle first!</Link>
+                                    <p className="text-sm">No Groups Found</p>
+                                    <Link href="/groups/new" className="text-xs underline">Create or Join a group first!</Link>
                                 </div>
                             </div>
                         ) : (
