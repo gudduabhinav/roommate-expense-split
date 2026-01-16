@@ -40,6 +40,9 @@ export default function GroupDetailPage() {
     const [addingUser, setAddingUser] = useState<string | null>(null);
     const { sendMemberNotification } = useGroupNotifications();
 
+    const [groupTotal, setGroupTotal] = useState(0);
+    const [userBalance, setUserBalance] = useState(0);
+
     const fetchData = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -82,14 +85,50 @@ export default function GroupDetailPage() {
                 if (currentUserMember) setUserRole(currentUserMember.role);
             }
 
-            // Fetch Expenses
-            const { data: expensesData, error: expensesError } = await supabase
+            // Fetch Expenses & Splits for calculation
+            const { data: expensesData } = await supabase
                 .from('expenses')
                 .select('*')
                 .eq('group_id', id)
                 .order('created_at', { ascending: false });
 
-            if (expensesData) setExpenses(expensesData);
+            if (expensesData) {
+                setExpenses(expensesData);
+                const total = expensesData.reduce((acc, curr) => acc + Number(curr.amount), 0);
+                setGroupTotal(total);
+
+                // Fetch Splits for balance
+                const expenseIds = expensesData.map(e => e.id);
+                const { data: splitsData } = await supabase
+                    .from('expense_splits')
+                    .select('*')
+                    .in('expense_id', expenseIds);
+
+                if (splitsData) {
+                    let incoming = 0; // Others owe me
+                    let outgoing = 0; // I owe others
+
+                    expensesData.forEach(exp => {
+                        const expSplits = splitsData.filter(s => s.expense_id === exp.id);
+
+                        if (exp.paid_by === user.id) {
+                            // I paid, count others' parts
+                            expSplits.forEach(s => {
+                                if (s.user_id !== user.id) {
+                                    incoming += Number(s.amount);
+                                }
+                            });
+                        } else {
+                            // I am in splits for others' expenses
+                            const mySplit = expSplits.find(s => s.user_id === user.id);
+                            if (mySplit) {
+                                outgoing += Number(mySplit.amount);
+                            }
+                        }
+                    });
+                    setUserBalance(incoming - outgoing);
+                }
+            }
         } catch (err) {
             console.error(err);
         }
@@ -179,7 +218,7 @@ export default function GroupDetailPage() {
     const handleShare = async () => {
         if (!group?.invite_code) return;
         const link = `${window.location.origin}/join/${group.invite_code}`;
-        const text = `Join my expense circle "${group.name}" on Roomie! tap here: ${link}`;
+        const text = `Join my expense group "${group.name}" on SplitSmart! tap here: ${link}`;
 
         if (navigator.share) {
             try {
@@ -211,7 +250,7 @@ export default function GroupDetailPage() {
 
     const handleRemoveMember = async (memberUserId: string) => {
         if (userRole !== 'owner') return;
-        if (!confirm("Remove this member from the circle?")) return;
+        if (!confirm("Remove this member from the group?")) return;
 
         try {
             // Get member's name before deleting
@@ -385,7 +424,7 @@ export default function GroupDetailPage() {
                                         <Share2 size={16} />
                                         <span className="text-xs font-bold text-slate-900 dark:text-white">Share via...</span>
                                     </button>
-                                    <a href={`mailto:?subject=Join ${group.name}&body=Join my circle using code: ${group.invite_code}`} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-3 w-full text-left transition-colors">
+                                    <a href={`mailto:?subject=Join ${group.name}&body=Join my group using code: ${group.invite_code}`} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-3 w-full text-left transition-colors">
                                         <Mail size={16} />
                                         <span className="text-xs font-bold text-slate-900 dark:text-white">Email Invite</span>
                                     </a>
@@ -445,9 +484,17 @@ export default function GroupDetailPage() {
                             </p>
                         </div>
                     </div>
-                    <div className="bg-white/10 backdrop-blur-lg rounded-[2.5rem] p-6 md:p-8 border border-white/20 shadow-2xl">
-                        <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Group Net Balance</p>
-                        <p className="text-3xl md:text-4xl font-bold font-poppins">₹{(group.total || 0).toLocaleString()}</p>
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <div className="bg-white/10 backdrop-blur-lg rounded-[2.5rem] p-6 md:p-8 border border-white/20 shadow-2xl flex-grow">
+                            <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Group Total</p>
+                            <p className="text-3xl md:text-4xl font-bold font-poppins">₹{(groupTotal || 0).toLocaleString()}</p>
+                        </div>
+                        <div className="bg-white/10 backdrop-blur-lg rounded-[2.5rem] p-6 md:p-8 border border-white/20 shadow-2xl flex-grow">
+                            <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Your Balance</p>
+                            <p className={`text-3xl md:text-4xl font-bold font-poppins ${userBalance > 0 ? 'text-green-400' : userBalance < 0 ? 'text-red-400' : 'text-white'}`}>
+                                {userBalance > 0 ? '+' : ''}₹{Math.abs(userBalance).toLocaleString()}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

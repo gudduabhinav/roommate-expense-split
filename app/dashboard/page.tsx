@@ -10,39 +10,90 @@ export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
     const [groups, setGroups] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({ incoming: 0, outgoing: 0, net: 0 });
+
+    const fetchDashboardData = async () => {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+
+        if (authUser) {
+            // Fetch Profile
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', authUser.id)
+                .single();
+
+            const firstName = profile?.first_name || authUser.user_metadata?.first_name || authUser.email?.split('@')[0];
+            setUser({ ...authUser, ...profile, first_name: firstName });
+
+            // Fetch Groups
+            const { data: groupsData } = await supabase
+                .from('groups')
+                .select(`
+                    *,
+                    members:group_members(count)
+                `)
+                .order('created_at', { ascending: false });
+
+            if (groupsData) setGroups(groupsData);
+
+            // Fetch all expenses for user's groups to calculate balance
+            const { data: expenses } = await supabase
+                .from('expenses')
+                .select('id, amount, paid_by, group_id');
+
+            const { data: splits } = await supabase
+                .from('expense_splits')
+                .select('expense_id, user_id, amount');
+
+            if (expenses && splits) {
+                let incoming = 0; // Money others owe me
+                let outgoing = 0; // Money I owe others
+
+                expenses.forEach(exp => {
+                    const expSplits = splits.filter(s => s.expense_id === exp.id);
+
+                    if (exp.paid_by === authUser.id) {
+                        // I paid, others owe their shares
+                        expSplits.forEach(s => {
+                            if (s.user_id !== authUser.id) {
+                                incoming += Number(s.amount);
+                            }
+                        });
+                    } else {
+                        // Someone else paid, I might owe a share
+                        const mySplit = expSplits.find(s => s.user_id === authUser.id);
+                        if (mySplit) {
+                            outgoing += Number(mySplit.amount);
+                        }
+                    }
+                });
+
+                setStats({
+                    incoming,
+                    outgoing,
+                    net: incoming - outgoing
+                });
+            }
+        }
+        setLoading(false);
+    };
 
     useEffect(() => {
-        async function fetchDashboardData() {
-            setLoading(true);
-            const { data: { user: authUser } } = await supabase.auth.getUser();
-
-            if (authUser) {
-                // Fetch Profile
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', authUser.id)
-                    .single();
-
-                // Get name from profile, then metadata, then email
-                const firstName = profile?.first_name || authUser.user_metadata?.first_name || authUser.email?.split('@')[0];
-                setUser({ ...authUser, ...profile, first_name: firstName });
-
-                // Fetch Groups
-                const { data: groupsData } = await supabase
-                    .from('groups')
-                    .select(`
-                        *,
-                        members:group_members(count)
-                    `)
-                    .limit(3)
-                    .order('created_at', { ascending: false });
-
-                if (groupsData) setGroups(groupsData);
-            }
-            setLoading(false);
-        }
+        setLoading(true); // Set loading true when effect runs
         fetchDashboardData();
+
+        // Subscribe to changes
+        const channel = supabase
+            .channel('dashboard_changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => fetchDashboardData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'expense_splits' }, () => fetchDashboardData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'groups' }, () => fetchDashboardData())
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     if (loading) {
@@ -88,7 +139,7 @@ export default function DashboardPage() {
                         </div>
                         <div>
                             <p className="text-white/70 text-[10px] mb-1 uppercase tracking-[0.2em] font-black">Net Balance</p>
-                            <h2 className="text-5xl md:text-6xl font-bold font-poppins">₹0</h2>
+                            <h2 className="text-5xl md:text-6xl font-bold font-poppins">₹{stats.net.toLocaleString()}</h2>
                         </div>
                         <div className="flex gap-4">
                             <Link href="/add-expense" className="flex-grow bg-white text-primary py-4.5 rounded-[1.5rem] font-bold flex items-center justify-center gap-2 hover:bg-slate-50 transition-all active:scale-95 shadow-lg">
@@ -111,7 +162,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="space-y-1">
                             <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest">Coming In</p>
-                            <p className="text-2xl md:text-3xl font-bold text-success font-poppins">₹0</p>
+                            <p className="text-2xl md:text-3xl font-bold text-success font-poppins">₹{stats.incoming.toLocaleString()}</p>
                         </div>
                     </div>
                     <div className="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-800 flex flex-col justify-between opacity-50 relative overflow-hidden group">
@@ -123,7 +174,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="space-y-1">
                             <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest">Going Out</p>
-                            <p className="text-2xl md:text-3xl font-bold text-danger font-poppins">₹0</p>
+                            <p className="text-2xl md:text-3xl font-bold text-danger font-poppins">₹{stats.outgoing.toLocaleString()}</p>
                         </div>
                     </div>
                 </div>
@@ -133,7 +184,7 @@ export default function DashboardPage() {
             <div className="space-y-6">
                 <div className="flex justify-between items-end px-2 md:px-0">
                     <div className="space-y-1">
-                        <h2 className="text-2xl font-bold font-poppins text-slate-900 dark:text-white">Active Circles</h2>
+                        <h2 className="text-2xl font-bold font-poppins text-slate-900 dark:text-white">Active Groups</h2>
                         <p className="text-foreground/40 text-xs font-medium">Your most recent groups</p>
                     </div>
                     <Link href="/groups" className="text-primary font-black text-[10px] uppercase tracking-widest hover:underline py-2">View All</Link>
@@ -186,7 +237,7 @@ export default function DashboardPage() {
                         <div className="w-16 h-16 rounded-[1.5rem] border-2 border-current flex items-center justify-center transition-transform hover:scale-110">
                             <Plus size={32} />
                         </div>
-                        <span className="font-black text-[10px] uppercase tracking-widest">Register Circle</span>
+                        <span className="font-black text-[10px] uppercase tracking-widest">Register Group</span>
                     </Link>
                 </div>
             </div>
