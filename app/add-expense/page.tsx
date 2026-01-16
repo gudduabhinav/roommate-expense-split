@@ -166,37 +166,37 @@ export default function AddExpensePage() {
                 </Link>
 
                 <div className="space-y-2 px-2">
-                    <h1 className="text-4xl md:text-5xl font-bold font-poppins tracking-tight text-slate-900 dark:text-white">Record Spending</h1>
-                    <p className="text-foreground/40 text-lg">Who paid and how are we splitting this?</p>
+                    <h1 className="text-3xl md:text-5xl font-bold font-poppins tracking-tight text-slate-900 dark:text-white">Record Spending</h1>
+                    <p className="text-foreground/40 text-base md:text-lg">Who paid and how are we splitting this?</p>
                 </div>
 
                 {/* Amount Section */}
-                <div className="bg-white dark:bg-slate-800 p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] card-shadow border border-slate-100 dark:border-slate-800 text-center space-y-4 relative overflow-hidden mx-1">
+                <div className="bg-white dark:bg-slate-800 p-6 md:p-12 rounded-3xl md:rounded-[3.5rem] card-shadow border border-slate-100 dark:border-slate-800 text-center space-y-4 relative overflow-hidden mx-1">
                     <div className="absolute top-0 left-0 w-2 h-full bg-primary" />
                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/20">Total Bill Amount</p>
                     <div className="flex items-center justify-center gap-4">
-                        <span className="text-4xl md:text-5xl font-black text-primary font-poppins">₹</span>
+                        <span className="text-3xl md:text-5xl font-black text-primary font-poppins">₹</span>
                         <input
                             type="number"
                             placeholder="0"
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
-                            className="text-6xl md:text-7xl font-black font-poppins w-full max-w-[280px] outline-none bg-transparent placeholder:text-slate-100 dark:placeholder:text-slate-800 text-center text-slate-900 dark:text-white"
+                            className="text-5xl md:text-7xl font-black font-poppins w-full max-w-[280px] outline-none bg-transparent placeholder:text-slate-100 dark:placeholder:text-slate-800 text-center text-slate-900 dark:text-white"
                         />
                     </div>
                 </div>
 
                 {/* Details Form */}
-                <div className="bg-white dark:bg-slate-800 p-6 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] card-shadow border border-slate-100 dark:border-slate-800 space-y-10 mx-1">
+                <div className="bg-white dark:bg-slate-800 p-5 md:p-12 rounded-3xl md:rounded-[3.5rem] card-shadow border border-slate-100 dark:border-slate-800 space-y-8 md:space-y-10 mx-1">
                     {/* Description */}
                     <div className="space-y-4">
                         <label className="text-[10px] font-black uppercase tracking-widest ml-4 text-foreground/40">Description</label>
                         <input
                             type="text"
-                            placeholder="Dinner at Social, Milk & Eggs..."
+                            placeholder="Dinner, Groceries..."
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-[1.5rem] py-6 px-8 text-xl font-bold focus:ring-0 transition-all outline-none text-slate-900 dark:text-white"
+                            className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl md:rounded-[1.5rem] py-4 md:py-6 px-6 md:px-8 text-lg md:text-xl font-bold focus:ring-0 transition-all outline-none text-slate-900 dark:text-white"
                         />
                     </div>
 
@@ -208,7 +208,7 @@ export default function AddExpensePage() {
                                 type="date"
                                 value={date}
                                 onChange={(e) => setDate(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-[1.5rem] py-6 px-8 text-xl font-bold focus:ring-0 transition-all outline-none text-slate-900 dark:text-white"
+                                className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl md:rounded-[1.5rem] py-4 md:py-6 px-6 md:px-8 text-lg md:text-xl font-bold focus:ring-0 transition-all outline-none text-slate-900 dark:text-white"
                             />
                             <Calendar className="absolute right-8 top-1/2 -translate-y-1/2 text-foreground/20 pointer-events-none" size={24} />
                         </div>
@@ -231,7 +231,7 @@ export default function AddExpensePage() {
                                 <select
                                     value={selectedGroup}
                                     onChange={(e) => setSelectedGroup(e.target.value)}
-                                    className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-[1.5rem] py-6 pl-16 pr-6 appearance-none font-bold text-lg outline-none cursor-pointer text-slate-900 dark:text-white"
+                                    className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl md:rounded-[1.5rem] py-4 md:py-6 pl-14 md:pl-16 pr-6 appearance-none font-bold text-base md:text-lg outline-none cursor-pointer text-slate-900 dark:text-white"
                                 >
                                     {groups.map(g => (
                                         <option key={g.id} value={g.id} className="dark:bg-slate-900">{g.name}</option>

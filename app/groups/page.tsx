@@ -47,7 +47,7 @@ export default function GroupsPage() {
     }
 
     return (
-        <div className="px-2 py-4 md:px-10 md:py-10 space-y-8 pb-32 md:pb-10 text-foreground">
+        <div className="px-2 py-4 md:px-10 md:py-10 space-y-6 md:space-y-8 pb-32 md:pb-10 text-foreground">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-2 md:px-0">
                 <div>
@@ -61,19 +61,19 @@ export default function GroupsPage() {
 
             {/* Stats Overview */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] card-shadow border border-slate-50 dark:border-slate-700">
+                <div className="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-3xl md:rounded-[2rem] card-shadow border border-slate-50 dark:border-slate-700">
                     <p className="text-foreground/40 text-[10px] font-bold uppercase tracking-wider mb-2">Total Groups</p>
                     <p className="text-2xl font-bold font-poppins">{groups.length}</p>
                 </div>
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] card-shadow border border-slate-50 dark:border-slate-700 opacity-50">
+                <div className="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-3xl md:rounded-[2rem] card-shadow border border-slate-50 dark:border-slate-700 opacity-50">
                     <p className="text-danger/60 text-[10px] font-bold uppercase tracking-wider mb-2">You Owe</p>
                     <p className="text-2xl font-bold font-poppins text-danger">₹0</p>
                 </div>
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] card-shadow border border-slate-50 dark:border-slate-700 opacity-50">
+                <div className="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-3xl md:rounded-[2rem] card-shadow border border-slate-50 dark:border-slate-700 opacity-50">
                     <p className="text-success/60 text-[10px] font-bold uppercase tracking-wider mb-2">You're Owed</p>
                     <p className="text-2xl font-bold font-poppins text-success">₹0</p>
                 </div>
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] card-shadow border border-slate-50 dark:border-slate-700 opacity-50">
+                <div className="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-3xl md:rounded-[2rem] card-shadow border border-slate-50 dark:border-slate-700 opacity-50">
                     <p className="text-primary/60 text-[10px] font-bold uppercase tracking-wider mb-2">Net Balance</p>
                     <p className="text-2xl font-bold font-poppins text-primary">₹0</p>
                 </div>
@@ -134,7 +134,7 @@ export default function GroupsPage() {
                             <Link
                                 key={group.id}
                                 href={`/group/${group.id}`}
-                                className="group bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-700 hover:scale-[1.02] transition-all block relative overflow-hidden"
+                                className="group bg-white dark:bg-slate-800 p-5 md:p-6 rounded-3xl md:rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-700 hover:scale-[1.02] transition-all block relative overflow-hidden"
                             >
                                 <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity">
                                     < MoreVertical className="text-foreground/20" />
@@ -184,7 +184,7 @@ export default function GroupsPage() {
                                 </div>
                             </Link>
                         ))}
-                        <Link href="/groups/new" className="group border-2 border-dashed border-slate-200 dark:border-slate-700 p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-foreground/30 hover:text-primary hover:border-primary/40 transition-all hover:bg-primary/5 min-h-[250px]">
+                        <Link href="/groups/new" className="group border-2 border-dashed border-slate-200 dark:border-slate-700 p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-foreground/30 hover:text-primary hover:border-primary/40 transition-all hover:bg-primary/5 min-h-[200px] md:min-h-[250px]">
                             <div className="w-16 h-16 rounded-full border-2 border-current flex items-center justify-center group-hover:scale-110 transition-transform">
                                 <Plus size={32} />
                             </div>

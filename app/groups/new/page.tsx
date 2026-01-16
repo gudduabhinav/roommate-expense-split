@@ -106,11 +106,11 @@ export default function NewGroupPage() {
             </Link>
 
             <div className="space-y-3 px-2">
-                <h1 className="text-4xl md:text-5xl font-bold font-poppins tracking-tight text-slate-900 dark:text-white">New Group</h1>
-                <p className="text-foreground/50 text-lg">Give your squad a name and choose its vibe.</p>
+                <h1 className="text-3xl md:text-5xl font-bold font-poppins tracking-tight text-slate-900 dark:text-white">New Group</h1>
+                <p className="text-foreground/50 text-base md:text-lg">Give your squad a name and choose its vibe.</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 p-6 md:p-12 rounded-[3rem] md:rounded-[3.5rem] card-shadow border border-slate-100 dark:border-slate-800 space-y-10 animate-in fade-in slide-in-from-bottom duration-700 mx-1 md:mx-0">
+            <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 p-5 md:p-12 rounded-3xl md:rounded-[3.5rem] card-shadow border border-slate-100 dark:border-slate-800 space-y-10 animate-in fade-in slide-in-from-bottom duration-700 mx-1 md:mx-0">
                 {/* Name Input */}
                 <div className="space-y-4">
                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30 block ml-4">Group Name</label>
@@ -122,7 +122,7 @@ export default function NewGroupPage() {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
-                            className="w-full bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-[2rem] py-6 pl-16 pr-6 transition-all outline-none text-xl font-bold font-poppins text-slate-900 dark:text-white"
+                            className="w-full bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-primary/20 rounded-2xl md:rounded-[2rem] py-4 md:py-6 pl-14 md:pl-16 pr-6 transition-all outline-none text-lg md:text-xl font-bold font-poppins text-slate-900 dark:text-white"
                         />
                     </div>
                 </div>
@@ -154,7 +154,7 @@ export default function NewGroupPage() {
                 <button
                     type="submit"
                     disabled={loading || !name}
-                    className="w-full bg-primary text-white py-6 rounded-[2.5rem] font-bold text-xl hover:bg-primary/90 transition-all card-shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 relative overflow-hidden group shadow-[0_20px_40px_-15px_rgba(99,102,241,0.5)] active:scale-95"
+                    className="w-full bg-primary text-white py-4 md:py-6 rounded-2xl md:rounded-[2.5rem] font-bold text-lg md:text-xl hover:bg-primary/90 transition-all card-shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 relative overflow-hidden group shadow-[0_20px_40px_-15px_rgba(99,102,241,0.5)] active:scale-95"
                 >
                     {loading ? (
                         <Loader2 className="animate-spin" size={28} />

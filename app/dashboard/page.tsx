@@ -1,6 +1,6 @@
 "use client";
 
-import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, MoreHorizontal, Users as UsersIcon, BarChart3, Loader2 } from "lucide-react";
+import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, MoreHorizontal, Users as UsersIcon, BarChart3, Loader2, RotateCw } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
@@ -105,9 +105,9 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="px-2 py-4 md:px-10 md:py-10 space-y-10 text-foreground">
-            {/* Header */}
-            <div className="flex justify-between items-center px-1 md:px-0">
+        <div className="px-1 md:px-8 py-4 md:py-8 space-y-6 md:space-y-10 pb-32 md:pb-10 text-foreground">
+            {/* Top Bar */}
+            <div className="flex justify-between items-center px-2 md:px-0">
                 <div className="flex items-center gap-6">
                     <Link href="/profile" className="w-12 h-12 rounded-2xl bg-slate-200 overflow-hidden card-shadow hover:scale-105 transition-transform flex items-center justify-center border-2 border-white dark:border-slate-800">
                         <img src={user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.first_name || 'User'}`} alt="profile" />
@@ -117,7 +117,7 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2 mt-1">
                             <p className="text-foreground/40 text-xs md:text-sm font-medium">Hello, {user?.first_name} 👋</p>
                             <button onClick={() => fetchDashboardData()} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors opacity-40">
-                                <History size={14} />
+                                <RotateCw size={14} />
                             </button>
                         </div>
                     </div>
@@ -133,7 +133,7 @@ export default function DashboardPage() {
 
             {/* Balance Card */}
             <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-primary p-7 md:p-8 rounded-[2.5rem] md:rounded-[3rem] text-white card-shadow relative overflow-hidden group shadow-2xl shadow-primary/30">
+                <div className="bg-primary p-6 md:p-8 rounded-3xl md:rounded-[3rem] text-white card-shadow relative overflow-hidden group shadow-2xl shadow-primary/30 mx-1 md:mx-0">
                     <div className="absolute top-[-10%] right-[-10%] w-48 h-48 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700" />
                     <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                         <div className="flex justify-between items-start">
@@ -144,13 +144,13 @@ export default function DashboardPage() {
                         </div>
                         <div>
                             <p className="text-white/70 text-[10px] mb-1 uppercase tracking-[0.2em] font-black">Net Balance</p>
-                            <h2 className="text-5xl md:text-6xl font-bold font-poppins">₹{stats.net.toLocaleString()}</h2>
+                            <h2 className="text-4xl md:text-6xl font-bold font-poppins">₹{stats.net.toLocaleString()}</h2>
                         </div>
-                        <div className="flex gap-4">
-                            <Link href="/add-expense" className="flex-grow bg-white text-primary py-4.5 rounded-[1.5rem] font-bold flex items-center justify-center gap-2 hover:bg-slate-50 transition-all active:scale-95 shadow-lg">
-                                <Plus size={20} /> Add Expense
+                        <div className="grid grid-cols-2 gap-3 md:gap-4">
+                            <Link href="/add-expense" className="bg-white text-primary py-3 md:py-4.5 rounded-2xl md:rounded-[1.5rem] font-bold flex items-center justify-center gap-2 hover:bg-slate-50 transition-all active:scale-95 shadow-lg text-xs md:text-base">
+                                <Plus size={18} /> Add
                             </Link>
-                            <Link href="/settle" className="flex-grow bg-white/20 text-white py-4.5 rounded-[1.5rem] font-bold flex items-center justify-center gap-2 backdrop-blur-md hover:bg-white/30 transition-all active:scale-95">
+                            <Link href="/settle" className="bg-white/20 text-white py-3 md:py-4.5 rounded-2xl md:rounded-[1.5rem] font-bold flex items-center justify-center gap-2 backdrop-blur-md hover:bg-white/30 transition-all active:scale-95 text-xs md:text-base">
                                 Settle Up
                             </Link>
                         </div>
@@ -158,7 +158,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-800 flex flex-col justify-between opacity-50 relative overflow-hidden group">
+                    <div className="bg-white dark:bg-slate-800 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-800 flex flex-col justify-between opacity-50 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                             <ArrowUpRight size={64} />
                         </div>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
                             <p className="text-2xl md:text-3xl font-bold text-success font-poppins">₹{stats.incoming.toLocaleString()}</p>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-800 flex flex-col justify-between opacity-50 relative overflow-hidden group">
+                    <div className="bg-white dark:bg-slate-800 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-800 flex flex-col justify-between opacity-50 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                             <ArrowDownLeft size={64} />
                         </div>
@@ -208,7 +208,11 @@ export default function DashboardPage() {
                         </div>
                     ) : (
                         groups.map((group) => (
-                            <Link key={group.id} href={`/group/${group.id}`} className="bg-white dark:bg-slate-800 p-7 rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-800 hover:scale-[1.02] transition-all block group hover:border-primary/20">
+                            <Link
+                                key={group.id}
+                                href={`/group/${group.id}`}
+                                className="bg-white dark:bg-slate-800 p-5 md:p-7 rounded-3xl md:rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-800 hover:scale-[1.02] transition-all group hover:border-primary/20"
+                            >
                                 <div className="flex justify-between items-start mb-6">
                                     <div className="w-14 h-14 bg-primary/10 text-primary rounded-[1.5rem] flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
                                         <UsersIcon size={28} />
@@ -238,7 +242,7 @@ export default function DashboardPage() {
                         ))
                     )}
 
-                    <Link href="/groups/new" className="border-2 border-dashed border-slate-200 dark:border-slate-700/50 p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-foreground/20 hover:text-primary hover:border-primary/40 transition-all hover:bg-primary/5 min-h-[220px]">
+                    <Link href="/groups/new" className="bg-white/40 dark:bg-slate-800/20 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl md:rounded-[2.5rem] flex flex-col items-center justify-center gap-3 text-foreground/20 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all p-8 min-h-[220px]">
                         <div className="w-16 h-16 rounded-[1.5rem] border-2 border-current flex items-center justify-center transition-transform hover:scale-110">
                             <Plus size={32} />
                         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, MoreVertical, Plus, Receipt, TrendingUp, History, Users as UsersIcon, Loader2, Share2, Copy, CheckCircle2, Trash2, UserMinus, ArrowUpRight, ArrowDownLeft, Calendar, Mail, Search, UserPlus, X } from "lucide-react";
+import { ArrowLeft, MoreVertical, Plus, Receipt, TrendingUp, RotateCw, Users as UsersIcon, Loader2, Share2, Copy, CheckCircle2, Trash2, UserMinus, ArrowUpRight, ArrowDownLeft, Calendar, Mail, Search, UserPlus, X, History as HistoryIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -485,13 +485,13 @@ export default function GroupDetailPage() {
                         </div>
                     </div>
                     <div className="flex flex-col md:flex-row gap-4">
-                        <div className="bg-white/10 backdrop-blur-lg rounded-[2.5rem] p-6 md:p-8 border border-white/20 shadow-2xl flex-grow">
-                            <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Group Total</p>
-                            <p className="text-3xl md:text-4xl font-bold font-poppins">₹{(groupTotal || 0).toLocaleString()}</p>
+                        <div className="bg-white/10 backdrop-blur-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 border border-white/20 shadow-2xl flex-grow">
+                            <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Group Total</p>
+                            <p className="text-2xl md:text-4xl font-bold font-poppins">₹{(groupTotal || 0).toLocaleString()}</p>
                         </div>
-                        <div className="bg-white/10 backdrop-blur-lg rounded-[2.5rem] p-6 md:p-8 border border-white/20 shadow-2xl flex-grow">
-                            <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Your Balance</p>
-                            <p className={`text-3xl md:text-4xl font-bold font-poppins ${userBalance > 0 ? 'text-green-400' : userBalance < 0 ? 'text-red-400' : 'text-white'}`}>
+                        <div className="bg-white/10 backdrop-blur-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 border border-white/20 shadow-2xl flex-grow">
+                            <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Your Balance</p>
+                            <p className={`text-2xl md:text-4xl font-bold font-poppins ${userBalance > 0 ? 'text-green-400' : userBalance < 0 ? 'text-red-400' : 'text-white'}`}>
                                 {userBalance > 0 ? '+' : ''}₹{Math.abs(userBalance).toLocaleString()}
                             </p>
                         </div>
@@ -504,10 +504,10 @@ export default function GroupDetailPage() {
                 <div className="flex gap-4 overflow-x-auto pb-4 px-1 hide-scrollbar">
                     {members.map((member) => (
                         <div key={member.id} className="relative group shrink-0">
-                            <div className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-700 w-48 md:w-52 space-y-4 hover:border-primary/40 transition-all">
+                            <div className="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-3xl md:rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-700 w-44 md:w-52 space-y-4 hover:border-primary/40 transition-all">
                                 <div className="flex justify-between items-start">
                                     <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-900 overflow-hidden ring-4 ring-slate-50 dark:ring-slate-700 shadow-lg relative">
-                                        <img src={member.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.profiles?.first_name || 'User'}`} alt="avatar" />
+                                        <img src={member.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.profiles?.first_name || 'User'}`} className="w-full h-full object-cover" />
                                     </div>
                                     <div className={`text-[10px] font-black px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-900 text-foreground/30 uppercase tracking-[0.1em]`}>
                                         {member.role === 'owner' ? 'Admin' : 'Active'}
@@ -531,7 +531,7 @@ export default function GroupDetailPage() {
                     ))}
 
                     {/* Add Member Button (Replaces the specific Invite Card) */}
-                    <button onClick={() => setIsAddMemberOpen(true)} className="shrink-0 w-48 md:w-52 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-foreground/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all group">
+                    <button onClick={() => setIsAddMemberOpen(true)} className="shrink-0 w-44 md:w-52 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl md:rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-foreground/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all group">
                         <div className="p-4 rounded-full border-2 border-current group-hover:scale-110 transition-transform">
                             <UserPlus size={32} />
                         </div>
@@ -543,12 +543,12 @@ export default function GroupDetailPage() {
                 </div>
 
                 {/* Sub-Tabs */}
-                <div className="bg-white/80 dark:bg-slate-800/80 p-1.5 rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-700 flex backdrop-blur-2xl mx-1 overflow-x-auto hide-scrollbar">
+                <div className="bg-white/80 dark:bg-slate-800/80 p-1.5 rounded-2xl md:rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-700 flex backdrop-blur-2xl mx-1 overflow-x-auto hide-scrollbar">
                     {[
                         { id: "expenses", label: "Ledger", icon: Receipt },
                         { id: "balances", label: "Balances", icon: UsersIcon },
                         { id: "analytics", label: "Stats", icon: TrendingUp },
-                        { id: "activity", label: "Log", icon: History },
+                        { id: "activity", label: "Log", icon: HistoryIcon },
                     ].map((tab) => {
                         const Icon = tab.icon;
                         return (
@@ -575,7 +575,7 @@ export default function GroupDetailPage() {
                                         className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-foreground/40"
                                         title="Refresh Ledger"
                                     >
-                                        <History size={18} />
+                                        <RotateCw size={18} />
                                     </button>
                                     <p className="text-[10px] font-black text-foreground/20 uppercase tracking-[0.2em]">{expenses.length} Records</p>
                                 </div>
@@ -593,7 +593,7 @@ export default function GroupDetailPage() {
                             ) : (
                                 <div className="space-y-4">
                                     {expenses.map((expense) => (
-                                        <div key={expense.id} className="bg-white dark:bg-slate-800 p-6 rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-700 flex items-center justify-between group hover:border-primary/40 transition-all cursor-pointer">
+                                        <div key={expense.id} className="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-3xl md:rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-700 flex items-center justify-between group hover:border-primary/40 transition-all cursor-pointer">
                                             <div className="flex items-center gap-4 md:gap-5">
                                                 <div className="w-14 h-14 md:w-16 md:h-16 bg-slate-50 dark:bg-slate-900 rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-inner">
                                                     {expense.category_icon || (CATEGORIES.find(c => c.id === expense.category)?.icon) || '💸'}
@@ -642,7 +642,7 @@ export default function GroupDetailPage() {
 
                     {activeTab === "activity" && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 text-center py-12">
-                            <History size={48} className="mx-auto text-foreground/10" />
+                            <HistoryIcon size={48} className="mx-auto text-foreground/10" />
                             <p className="text-foreground/40 font-black text-[10px] uppercase tracking-[0.4em]">Audit Log</p>
                             <p className="text-xs text-foreground/30">History of all edits and removals will appear here.</p>
                         </div>
