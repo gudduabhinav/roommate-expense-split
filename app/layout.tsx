@@ -3,6 +3,7 @@ import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { PWARegistration } from "@/components/common/pwa-registration";
 import { NotificationInitializer } from "@/components/common/notification-initializer";
+import { ToastProvider } from "@/components/common/ToastProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -39,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -48,9 +49,11 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${poppins.variable} font-sans antialiased`}
       >
-        <PWARegistration />
-        <NotificationInitializer />
-        {children}
+        <ToastProvider>
+          <PWARegistration />
+          <NotificationInitializer />
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

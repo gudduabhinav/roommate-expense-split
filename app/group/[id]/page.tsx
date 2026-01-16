@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, MoreVertical, Plus, Receipt, TrendingUp, RotateCw, Users as UsersIcon, Loader2, Share2, Copy, CheckCircle2, Trash2, UserMinus, ArrowUpRight, ArrowDownLeft, Calendar, Mail, Search, UserPlus, X, History as HistoryIcon } from "lucide-react";
+import { ArrowLeft, MoreVertical, Plus, Receipt, TrendingUp, RotateCw, Users as UsersIcon, Loader2, Share2, Copy, CheckCircle2, Trash2, UserMinus, ArrowUpRight, ArrowDownLeft, Calendar, Mail, Search, UserPlus, X, History as HistoryIcon, Edit2, Settings } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useGroupNotifications } from "@/lib/hooks/useGroupNotifications";
+import BalancesView from "./BalancesView";
+import StatsView from "./StatsView";
+
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const CATEGORIES = [
     { id: "Dining", icon: "🍴", label: "Dining" },
@@ -29,6 +33,7 @@ export default function GroupDetailPage() {
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
     const [userRole, setUserRole] = useState<string>("member");
+    const [currentUser, setCurrentUser] = useState<any>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showInviteOptions, setShowInviteOptions] = useState(false);
 
@@ -42,6 +47,11 @@ export default function GroupDetailPage() {
 
     const [groupTotal, setGroupTotal] = useState(0);
     const [userBalance, setUserBalance] = useState(0);
+    const [confirmDialogs, setConfirmDialogs] = useState({
+        deleteGroup: false,
+        removeMember: { isOpen: false, memberId: null as string | null, memberName: '' },
+        deleteExpense: { isOpen: false, expenseId: null as string | null }
+    });
 
     const fetchData = async () => {
         try {
@@ -85,12 +95,23 @@ export default function GroupDetailPage() {
                 if (currentUserMember) setUserRole(currentUserMember.role);
             }
 
-            // Fetch Expenses & Splits for calculation
-            const { data: expensesData } = await supabase
+            // Fetch Expenses & Splits for calculation (with safety fallback)
+            let { data: expensesData, error: expFetchError } = await supabase
                 .from('expenses')
-                .select('*')
+                .select('*, profiles:paid_by(full_name, avatar_url, first_name)')
                 .eq('group_id', id)
                 .order('created_at', { ascending: false });
+
+            // Fallback: If join fails, fetch raw expenses so data is at least visible
+            if (expFetchError) {
+                console.error("Join fetch failed, falling back to raw fetch:", expFetchError);
+                const { data: rawExpenses } = await supabase
+                    .from('expenses')
+                    .select('*')
+                    .eq('group_id', id)
+                    .order('created_at', { ascending: false });
+                expensesData = rawExpenses;
+            }
 
             if (expensesData) {
                 setExpenses(expensesData);
@@ -138,8 +159,11 @@ export default function GroupDetailPage() {
         let mounted = true;
         async function init() {
             setLoading(true);
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            if (authUser) {
+                setCurrentUser(authUser);
+            }
+            if (!authUser) {
                 router.push('/auth');
                 return;
             }
@@ -182,19 +206,19 @@ export default function GroupDetailPage() {
 
             setIsSearching(true);
             try {
-                // Search by email or name
+                // Improved Search by name or email
                 const { data, error } = await supabase
                     .from('profiles')
                     .select('*')
-                    .or(`full_name.ilike.%${searchQuery}%, email.ilike.%${searchQuery}%`, { foreignTable: "profiles" })
-                    // Fallback to searching by full name if email isn't available
-                    .ilike('full_name', `%${searchQuery}%`)
-                    .limit(5);
+                    .or(`full_name.ilike.%${searchQuery}%, email.ilike.%${searchQuery}%`)
+                    .limit(10);
 
                 if (data) {
                     // Filter out existing members
                     const existingIds = new Set(members.map(m => m.user_id));
                     setSearchResults(data.filter(u => !existingIds.has(u.id)));
+                } else if (error) {
+                    console.error("Search result error", error);
                 }
             } catch (error) {
                 console.error("Search error", error);
@@ -236,9 +260,11 @@ export default function GroupDetailPage() {
     };
 
     const handleDeleteGroup = async () => {
-        if (userRole !== 'owner') return;
-        if (!confirm("Are you sure? This will delete all expenses and members forever.")) return;
+        setConfirmDialogs(prev => ({ ...prev, deleteGroup: true }));
+    };
 
+    const confirmDeleteGroup = async () => {
+        if (userRole !== 'owner') return;
         try {
             const { error } = await supabase.from('groups').delete().eq('id', id);
             if (error) throw error;
@@ -250,13 +276,16 @@ export default function GroupDetailPage() {
 
     const handleRemoveMember = async (memberUserId: string) => {
         if (userRole !== 'owner') return;
-        if (!confirm("Remove this member from the group?")) return;
+        const member = members.find(m => m.user_id === memberUserId);
+        const memberName = member?.profiles?.full_name || 'this member';
+        setConfirmDialogs(prev => ({ ...prev, removeMember: { isOpen: true, memberId: memberUserId, memberName } }));
+    };
+
+    const confirmRemoveMember = async () => {
+        const memberUserId = confirmDialogs.removeMember.memberId;
+        if (!memberUserId) return;
 
         try {
-            // Get member's name before deleting
-            const removedMember = members.find(m => m.user_id === memberUserId);
-            const memberName = removedMember?.profiles?.full_name || 'A member';
-
             const { error } = await supabase
                 .from('group_members')
                 .delete()
@@ -264,11 +293,9 @@ export default function GroupDetailPage() {
                 .eq('user_id', memberUserId);
 
             if (error) throw error;
-
-            // Send notification
-            await sendMemberNotification(id as string, memberName, 'left');
-
+            await sendMemberNotification(id as string, confirmDialogs.removeMember.memberName, 'left');
             setMembers(members.filter(m => m.user_id !== memberUserId));
+            setConfirmDialogs(prev => ({ ...prev, removeMember: { isOpen: false, memberId: null, memberName: '' } }));
         } catch (err: any) {
             alert(err.message);
         }
@@ -309,6 +336,25 @@ export default function GroupDetailPage() {
         }
     };
 
+    const handleDeleteExpense = async (expenseId: string) => {
+        setConfirmDialogs(prev => ({ ...prev, deleteExpense: { isOpen: true, expenseId } }));
+    };
+
+    const confirmDeleteExpense = async () => {
+        const expenseId = confirmDialogs.deleteExpense.expenseId;
+        if (!expenseId) return;
+
+        try {
+            const { error } = await supabase.from('expenses').delete().eq('id', expenseId);
+            if (error) throw error;
+            setExpenses(prev => prev.filter(e => e.id !== expenseId));
+            setConfirmDialogs(prev => ({ ...prev, deleteExpense: { isOpen: false, expenseId: null } }));
+            fetchData();
+        } catch (error: any) {
+            alert("Delete failed: " + error.message);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -331,6 +377,39 @@ export default function GroupDetailPage() {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-32 text-foreground relative">
+
+            <ConfirmDialog
+                isOpen={confirmDialogs.deleteGroup}
+                title="Delete Group Forever?"
+                message="This will permanently delete all expenses, splits, and member history. This action cannot be undone."
+                confirmText="Delete Forever"
+                cancelText="Cancel"
+                type="danger"
+                onConfirm={confirmDeleteGroup}
+                onCancel={() => setConfirmDialogs(prev => ({ ...prev, deleteGroup: false }))}
+            />
+
+            <ConfirmDialog
+                isOpen={confirmDialogs.removeMember.isOpen}
+                title="Remove Member?"
+                message={`Remove ${confirmDialogs.removeMember.memberName} from this group? They will lose access to all group data.`}
+                confirmText="Remove"
+                cancelText="Cancel"
+                type="warning"
+                onConfirm={confirmRemoveMember}
+                onCancel={() => setConfirmDialogs(prev => ({ ...prev, removeMember: { isOpen: false, memberId: null, memberName: '' } }))}
+            />
+
+            <ConfirmDialog
+                isOpen={confirmDialogs.deleteExpense.isOpen}
+                title="Delete Expense?"
+                message="This will permanently delete this expense and update everyone's balance. This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                type="danger"
+                onConfirm={confirmDeleteExpense}
+                onCancel={() => setConfirmDialogs(prev => ({ ...prev, deleteExpense: { isOpen: false, expenseId: null } }))}
+            />
 
             {/* Add Member Modal */}
             {isAddMemberOpen && (
@@ -549,6 +628,7 @@ export default function GroupDetailPage() {
                         { id: "balances", label: "Balances", icon: UsersIcon },
                         { id: "analytics", label: "Stats", icon: TrendingUp },
                         { id: "activity", label: "Log", icon: HistoryIcon },
+                        ...(isOwner ? [{ id: "settings", label: "Settings", icon: Settings }] : []),
                     ].map((tab) => {
                         const Icon = tab.icon;
                         return (
@@ -600,14 +680,54 @@ export default function GroupDetailPage() {
                                                 </div>
                                                 <div className="space-y-1">
                                                     <h3 className="font-bold font-poppins text-base md:text-lg text-slate-900 dark:text-white">{expense.description}</h3>
-                                                    <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
-                                                        <Calendar size={10} /> {new Date(expense.date || expense.created_at).toLocaleDateString()}
-                                                    </p>
+                                                    <div className="flex items-center gap-2">
+                                                        <img
+                                                            src={expense.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${expense.profiles?.first_name || 'User'}`}
+                                                            className="w-4 h-4 rounded-full"
+                                                        />
+                                                        <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                                                            {expense.profiles?.full_name || 'Unknown'} paid • {new Date(expense.date || expense.created_at).toLocaleDateString()}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="text-xl md:text-2xl font-bold font-poppins text-primary">₹{(expense.amount || 0).toLocaleString()}</p>
-                                                <p className="text-[10px] text-primary/60 font-black uppercase tracking-widest">Shared</p>
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-right">
+                                                    <p className="text-xl md:text-2xl font-bold font-poppins text-primary">₹{(expense.amount || 0).toLocaleString()}</p>
+                                                    <p className="text-[10px] text-primary/60 font-black uppercase tracking-widest">Shared</p>
+                                                </div>
+                                                {/* Ensure comparison works regardless of join structure */}
+                                                {(() => {
+                                                    const payerId = typeof expense.paid_by === 'object' ? expense.paid_by?.id : expense.paid_by;
+                                                    const isPayer = payerId === currentUser?.id;
+                                                    const isGroupOwner = group?.created_by === currentUser?.id || userRole === 'owner';
+
+                                                    if (isPayer || isGroupOwner) {
+                                                        return (
+                                                            <div className="flex gap-1 border-l border-slate-100 dark:border-slate-700 ml-2 pl-2">
+                                                                <Link
+                                                                    href={`/edit-expense/${expense.id}`}
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    className="p-3 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-2xl transition-all"
+                                                                    title="Edit Record"
+                                                                >
+                                                                    <Edit2 size={18} />
+                                                                </Link>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleDeleteExpense(expense.id);
+                                                                    }}
+                                                                    className="p-3 text-slate-400 hover:text-danger hover:bg-danger/10 rounded-2xl transition-all"
+                                                                    title="Delete Record"
+                                                                >
+                                                                    <Trash2 size={18} />
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
                                             </div>
                                         </div>
                                     ))}
@@ -618,25 +738,21 @@ export default function GroupDetailPage() {
 
                     {activeTab === "balances" && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                            <h2 className="text-2xl font-bold font-poppins px-4">Balances</h2>
-                            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-700 text-center space-y-4">
-                                <UsersIcon size={48} className="mx-auto text-primary/20" />
-                                <p className="text-foreground/40 font-medium">Coming Soon: Detailed settlement logic and balance tracking for individual members.</p>
+                            <div className="flex justify-between items-center px-4 md:px-6">
+                                <h2 className="text-2xl font-bold font-poppins text-slate-900 dark:text-white">Member Balances</h2>
+                                <p className="text-[10px] font-black text-foreground/20 uppercase tracking-[0.2em]">{members.length} Members</p>
                             </div>
+                            <BalancesView groupId={id as string} members={members} expenses={expenses} currentUserId={currentUser?.id} />
                         </div>
                     )}
 
                     {activeTab === "analytics" && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                            <h2 className="text-2xl font-bold font-poppins px-4">Visual Stats</h2>
-                            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-center space-y-4">
-                                <div className="flex gap-4 items-end h-40">
-                                    {[40, 70, 45, 90, 60, 80].map((h, i) => (
-                                        <div key={i} style={{ height: `${h}%` }} className="w-8 bg-primary/20 rounded-t-lg" />
-                                    ))}
-                                </div>
-                                <p className="text-foreground/40 font-medium pt-4">Spending charts and category-wise analysis are being prepared.</p>
+                            <div className="flex justify-between items-center px-4 md:px-6">
+                                <h2 className="text-2xl font-bold font-poppins text-slate-900 dark:text-white">Spending Stats</h2>
+                                <p className="text-[10px] font-black text-foreground/20 uppercase tracking-[0.2em]">₹{groupTotal.toLocaleString()}</p>
                             </div>
+                            <StatsView expenses={expenses} members={members} />
                         </div>
                     )}
 
@@ -645,6 +761,32 @@ export default function GroupDetailPage() {
                             <HistoryIcon size={48} className="mx-auto text-foreground/10" />
                             <p className="text-foreground/40 font-black text-[10px] uppercase tracking-[0.4em]">Audit Log</p>
                             <p className="text-xs text-foreground/30">History of all edits and removals will appear here.</p>
+                        </div>
+                    )}
+                    {activeTab === "settings" && isOwner && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                            <div className="px-4 md:px-6">
+                                <h2 className="text-2xl font-bold font-poppins text-slate-900 dark:text-white">Group Settings</h2>
+                                <p className="text-foreground/40 text-sm">Administrative controls for "{group.name}"</p>
+                            </div>
+
+                            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-700 space-y-8 mx-1">
+                                <div className="space-y-4">
+                                    <h3 className="text-lg font-bold font-poppins text-danger">Danger Zone</h3>
+                                    <div className="p-6 border-2 border-danger/20 rounded-3xl bg-danger/[0.02] space-y-4">
+                                        <div>
+                                            <p className="font-bold text-slate-900 dark:text-white">Delete Group</p>
+                                            <p className="text-xs text-foreground/50">Once deleted, all data including expenses, splits, and member history will be gone forever. This cannot be undone.</p>
+                                        </div>
+                                        <button
+                                            onClick={handleDeleteGroup}
+                                            className="bg-danger text-white px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-danger/90 transition-all flex items-center gap-2 shadow-lg shadow-danger/20 active:scale-95"
+                                        >
+                                            <Trash2 size={16} /> Delete Everything Forever
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

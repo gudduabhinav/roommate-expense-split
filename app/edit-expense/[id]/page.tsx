@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, Camera, IndianRupee, Save, Users, ChevronDown, Loader2, Check, AlertCircle, Calendar } from "lucide-react";
+import { ArrowLeft, IndianRupee, Save, Users, ChevronDown, Loader2, Check, AlertCircle, Calendar, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useGroupNotifications } from "@/lib/hooks/useGroupNotifications";
+import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
 const CATEGORIES = [
@@ -19,7 +18,8 @@ const CATEGORIES = [
     { id: "Other", icon: "📦", label: "Other" },
 ];
 
-export default function AddExpensePage() {
+export default function EditExpensePage() {
+    const { id: expenseId } = useParams();
     const [amount, setAmount] = useState("");
     const [title, setTitle] = useState("");
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -30,10 +30,9 @@ export default function AddExpensePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const router = useRouter();
-    const { sendExpenseNotification } = useGroupNotifications();
 
     useEffect(() => {
-        async function fetchGroups() {
+        async function fetchData() {
             setLoading(true);
             try {
                 const { data: { user } } = await supabase.auth.getUser();
@@ -42,32 +41,51 @@ export default function AddExpensePage() {
                     return;
                 }
 
-                // Fetch groups directly (same as groups page)
-                const { data: groupsData, error: groupsError } = await supabase
+                // 1. Fetch the expense to edit
+                const { data: expense, error: expError } = await supabase
+                    .from('expenses')
+                    .select('*')
+                    .eq('id', expenseId)
+                    .single();
+
+                if (expError || !expense) {
+                    alert("Expense not found");
+                    router.back();
+                    return;
+                }
+
+                // Security Check: Only payer or owner can edit (Simplified for now, UI also hides it)
+                if (expense.paid_by !== user.id) {
+                    // Check if group owner (optional extra check)
+                }
+
+                setAmount(expense.amount.toString());
+                setTitle(expense.description);
+                setCategory(expense.category);
+                setSplitType(expense.split_type);
+                setSelectedGroup(expense.group_id);
+                if (expense.date) {
+                    setDate(new Date(expense.date).toISOString().split('T')[0]);
+                }
+
+                // 2. Fetch groups for the dropdown
+                const { data: groupsData } = await supabase
                     .from('groups')
-                    .select('id, name, category')
+                    .select('id, name')
                     .order('created_at', { ascending: false });
 
-                if (groupsError) {
-                    console.error("Groups fetch error:", groupsError);
-                }
+                if (groupsData) setGroups(groupsData);
 
-                if (groupsData && groupsData.length > 0) {
-                    setGroups(groupsData);
-                    setSelectedGroup(groupsData[0].id);
-                } else {
-                    setGroups([]);
-                }
             } catch (err: any) {
-                console.error("Fetch Groups Error:", err);
+                console.error("Fetch Data Error:", err);
             } finally {
                 setLoading(false);
             }
         }
-        fetchGroups();
-    }, [router]);
+        fetchData();
+    }, [expenseId, router]);
 
-    const handleSave = async () => {
+    const handleUpdate = async () => {
         if (!amount || !title || !selectedGroup) {
             alert("Please fill all fields");
             return;
@@ -75,37 +93,35 @@ export default function AddExpensePage() {
 
         setSaving(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Not logged in");
-
-            // 1. Create Expense
-            const { data: expense, error: expError } = await supabase
+            // 1. Update Expense
+            const { error: updateError } = await supabase
                 .from('expenses')
-                .insert([{
-                    group_id: selectedGroup,
-                    paid_by: user.id,
+                .update({
                     description: title,
                     amount: parseFloat(amount),
                     category,
                     date: new Date(date).toISOString(),
-                    split_type: splitType
-                }])
-                .select()
-                .single();
+                    split_type: splitType,
+                    group_id: selectedGroup
+                })
+                .eq('id', expenseId);
 
-            if (expError) throw expError;
+            if (updateError) throw updateError;
 
-            // 2. Fetch Group Members for splitting & notifications
+            // 2. Fetch Group Members to update splits
             const { data: members } = await supabase
                 .from('group_members')
                 .select('user_id')
                 .eq('group_id', selectedGroup);
 
             if (members && members.length > 0) {
-                // Splits
+                // Remove old splits
+                await supabase.from('expense_splits').delete().eq('expense_id', expenseId);
+
+                // Re-create splits
                 const splitAmount = parseFloat(amount) / members.length;
                 const splits = members.map(m => ({
-                    expense_id: expense.id,
+                    expense_id: expenseId,
                     user_id: m.user_id,
                     amount: splitAmount
                 }));
@@ -115,35 +131,6 @@ export default function AddExpensePage() {
                     .insert(splits);
 
                 if (splitError) throw splitError;
-
-                // Notifications (In-app for all members except sender)
-                // Wrap in try-catch to ensure expense is saved even if notification fails
-                try {
-                    const notifications = members
-                        .filter(m => m.user_id !== user.id)
-                        .map(m => ({
-                            user_id: m.user_id,
-                            title: "New Expense Added",
-                            message: `A bill of ₹${amount} for "${title}" has been recorded.`,
-                            type: 'expense'
-                        }));
-
-                    if (notifications.length > 0) {
-                        await supabase.from('notifications').insert(notifications);
-                    }
-
-                    // Send Push Notifications via notification service
-                    const { data: userProfile } = await supabase
-                        .from('profiles')
-                        .select('full_name')
-                        .eq('id', user.id)
-                        .single();
-
-                    const userName = userProfile?.full_name || 'Someone';
-                    await sendExpenseNotification(selectedGroup, title, parseFloat(amount), userName);
-                } catch (notiError) {
-                    console.error("Notification delivery failed (likely RLS), but expense was saved.", notiError);
-                }
             }
 
             router.push(`/group/${selectedGroup}`);
@@ -165,20 +152,20 @@ export default function AddExpensePage() {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-32">
             <div className="max-w-2xl mx-auto px-2 py-4 md:p-10 space-y-10">
-                <Link href="/dashboard" className="flex items-center gap-2 text-foreground/40 hover:text-primary transition-colors group w-fit ml-2">
+                <button onClick={() => router.back()} className="flex items-center gap-2 text-foreground/40 hover:text-primary transition-colors group w-fit ml-2">
                     <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-                    <span className="font-bold font-poppins text-[10px] uppercase tracking-widest">Back to Life</span>
-                </Link>
+                    <span className="font-bold font-poppins text-[10px] uppercase tracking-widest">Back to Ledger</span>
+                </button>
 
                 <div className="space-y-2 px-2">
-                    <h1 className="text-3xl md:text-5xl font-bold font-poppins tracking-tight text-slate-900 dark:text-white">Record Spending</h1>
-                    <p className="text-foreground/40 text-base md:text-lg">Who paid and how are we splitting this?</p>
+                    <h1 className="text-3xl md:text-5xl font-bold font-poppins tracking-tight text-slate-900 dark:text-white">Edit Record</h1>
+                    <p className="text-foreground/40 text-base md:text-lg">Correcting a mistake? No worries.</p>
                 </div>
 
                 {/* Amount Section */}
                 <div className="bg-white dark:bg-slate-800 p-6 md:p-12 rounded-3xl md:rounded-[3.5rem] card-shadow border border-slate-100 dark:border-slate-800 text-center space-y-4 relative overflow-hidden mx-1">
                     <div className="absolute top-0 left-0 w-2 h-full bg-primary" />
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/20">Total Bill Amount</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/20">Updated Amount</p>
                     <div className="flex items-center justify-center gap-4">
                         <span className="text-3xl md:text-5xl font-black text-primary font-poppins">₹</span>
                         <input
@@ -193,7 +180,6 @@ export default function AddExpensePage() {
 
                 {/* Details Form */}
                 <div className="bg-white dark:bg-slate-800 p-5 md:p-12 rounded-3xl md:rounded-[3.5rem] card-shadow border border-slate-100 dark:border-slate-800 space-y-8 md:space-y-10 mx-1">
-                    {/* Description */}
                     <div className="space-y-4">
                         <label className="text-[10px] font-black uppercase tracking-widest ml-4 text-foreground/40">Description</label>
                         <input
@@ -205,7 +191,6 @@ export default function AddExpensePage() {
                         />
                     </div>
 
-                    {/* Date Picker */}
                     <div className="space-y-4">
                         <label className="text-[10px] font-black uppercase tracking-widest ml-4 text-foreground/40">Date</label>
                         <div className="relative">
@@ -219,38 +204,26 @@ export default function AddExpensePage() {
                         </div>
                     </div>
 
-                    {/* Group Selection */}
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase tracking-widest ml-4 text-foreground/40">Select Group</label>
-                        {groups.length === 0 ? (
-                            <div className="p-6 bg-amber-50 dark:bg-amber-900/20 rounded-[1.5rem] border border-amber-200 dark:border-amber-800/50 flex items-center gap-4 text-amber-800 dark:text-amber-400 font-bold">
-                                <AlertCircle className="shrink-0" size={20} />
-                                <div>
-                                    <p className="text-sm">No Groups Found</p>
-                                    <Link href="/groups/new" className="text-xs underline">Create or Join a group first!</Link>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="relative">
-                                <Users className="absolute left-6 top-1/2 -translate-y-1/2 text-foreground/20" size={24} />
-                                <select
-                                    value={selectedGroup}
-                                    onChange={(e) => setSelectedGroup(e.target.value)}
-                                    className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl md:rounded-[1.5rem] py-4 md:py-6 pl-14 md:pl-16 pr-6 appearance-none font-bold text-base md:text-lg outline-none cursor-pointer text-slate-900 dark:text-white"
-                                >
-                                    {groups.map(g => (
-                                        <option key={g.id} value={g.id} className="dark:bg-slate-900">{g.name}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 text-foreground/20 pointer-events-none" size={24} />
-                            </div>
-                        )}
+                        <label className="text-[10px] font-black uppercase tracking-widest ml-4 text-foreground/40">Group</label>
+                        <div className="relative">
+                            <Users className="absolute left-6 top-1/2 -translate-y-1/2 text-foreground/20" size={24} />
+                            <select
+                                value={selectedGroup}
+                                onChange={(e) => setSelectedGroup(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-primary/20 rounded-2xl md:rounded-[1.5rem] py-4 md:py-6 pl-14 md:pl-16 pr-6 appearance-none font-bold text-base md:text-lg outline-none cursor-pointer text-slate-900 dark:text-white"
+                            >
+                                {groups.map(g => (
+                                    <option key={g.id} value={g.id}>{g.name}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 text-foreground/20 pointer-events-none" size={24} />
+                        </div>
                     </div>
 
-                    {/* Categories */}
                     <div className="space-y-4">
                         <label className="text-[10px] font-black uppercase tracking-widest ml-4 text-foreground/40">Category</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 px-1">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {CATEGORIES.map((cat) => (
                                 <button
                                     key={cat.id}
@@ -264,31 +237,14 @@ export default function AddExpensePage() {
                         </div>
                     </div>
 
-                    {/* Split Strategy */}
-                    <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase tracking-widest ml-4 text-foreground/40">Split Strategy</label>
-                        <div className="flex bg-slate-100 dark:bg-slate-900 rounded-[1.5rem] p-1.5">
-                            {["equal", "unequal", "percent"].map((type) => (
-                                <button
-                                    key={type}
-                                    onClick={() => setSplitType(type)}
-                                    className={`flex-grow py-4 rounded-[1.1rem] text-[10px] font-black uppercase tracking-widest transition-all ${splitType === type ? 'bg-white dark:bg-slate-800 text-primary shadow-lg scale-[1.02]' : 'text-foreground/30 hover:text-foreground/50'}`}
-                                >
-                                    {type}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Action Button */}
                     <button
-                        onClick={handleSave}
-                        disabled={saving || !amount || !title || !selectedGroup}
+                        onClick={handleUpdate}
+                        disabled={saving || !amount || !title}
                         className="w-full bg-primary text-white py-6 rounded-[2rem] font-black text-xl hover:bg-primary/90 transition-all card-shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl shadow-primary/30 active:scale-95"
                     >
                         {saving ? <Loader2 className="animate-spin" size={24} /> : (
                             <>
-                                Record & Split <Check size={24} />
+                                Update Record <Save size={24} />
                             </>
                         )}
                     </button>

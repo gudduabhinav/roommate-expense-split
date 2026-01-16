@@ -5,6 +5,8 @@ CREATE TABLE public.profiles (
   last_name TEXT,
   full_name TEXT,
   avatar_url TEXT,
+  upi_id TEXT,
+  email TEXT,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 

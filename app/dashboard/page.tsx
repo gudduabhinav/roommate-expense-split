@@ -1,16 +1,20 @@
 "use client";
 
-import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, MoreHorizontal, Users as UsersIcon, BarChart3, Loader2, RotateCw, Trash2 } from "lucide-react";
+import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, MoreHorizontal, Users as UsersIcon, BarChart3, Loader2, RotateCw, Trash2, Edit2, Receipt } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { NotificationBell } from "@/components/common/notification-bell";
+import { PushPermissionPrompt } from "@/components/common/push-permission-prompt";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
     const [groups, setGroups] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({ incoming: 0, outgoing: 0, net: 0, totalSpent: 0 });
+    const [recentExpenses, setRecentExpenses] = useState<any[]>([]);
+    const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; expenseId: string | null }>({ isOpen: false, expenseId: null });
 
     const fetchDashboardData = async () => {
         try {
@@ -67,16 +71,23 @@ export default function DashboardPage() {
                 }
             });
 
-            // 3. Update Groups with Totals
+            // 3. Update Groups with Totals & Members (for avatars)
+            const { data: memberProfiles } = await supabase
+                .from('group_members')
+                .select('group_id, user_id, profiles:user_id(avatar_url, first_name)');
+
+            const groupIds = memberData?.map(g => g.group_id) || [];
+
             const groupsWithTotals = groupsData.map(g => {
                 const groupExpenses = expenses.filter(e => e.group_id === g.id);
                 const groupTotal = groupExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
-                const mCount = memberData.filter(m => m.group_id === g.id).length || 0;
+                const groupMembers = memberProfiles?.filter(m => m.group_id === g.id) || [];
                 return {
                     ...g,
                     total_expenses: groupTotal,
                     expense_count: groupExpenses.length,
-                    member_count: mCount
+                    member_count: groupMembers.length,
+                    members: groupMembers.map(m => m.profiles)
                 };
             });
 
@@ -88,6 +99,21 @@ export default function DashboardPage() {
                 totalSpent
             });
 
+            // 4. Get Recent Expenses (last 5)
+            const { data: recentExp } = await supabase
+                .from('expenses')
+                .select('*, profiles:paid_by(full_name, avatar_url, first_name), groups(name)')
+                .in('group_id', groupIds)
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            console.log('Recent Expenses:', recentExp);
+            console.log('Current User ID:', authUser.id);
+            if (recentExp && recentExp.length > 0) {
+                console.log('First expense paid_by:', recentExp[0].paid_by, 'Type:', typeof recentExp[0].paid_by);
+            }
+            setRecentExpenses(recentExp || []);
+
         } catch (err) {
             console.error("Dashboard Fetch Error:", err);
         } finally {
@@ -96,8 +122,16 @@ export default function DashboardPage() {
     };
 
     useEffect(() => {
-        setLoading(true); // Set loading true when effect runs
+        setLoading(true);
         fetchDashboardData();
+
+        // Auto-retry if data is unexpectedly empty (helps with mobile sync)
+        const retryTimer = setTimeout(() => {
+            if (stats.totalSpent === 0 && groups.length > 0) {
+                console.log("Retrying dashboard fetch for mobile sync...");
+                fetchDashboardData();
+            }
+        }, 2500);
 
         // Subscribe to changes
         const channel = supabase
@@ -108,9 +142,27 @@ export default function DashboardPage() {
             .subscribe();
 
         return () => {
+            clearTimeout(retryTimer);
             supabase.removeChannel(channel);
         };
     }, []);
+
+    const handleDeleteExpense = async (expenseId: string) => {
+        setDeleteConfirm({ isOpen: true, expenseId });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirm.expenseId) return;
+
+        try {
+            const { error } = await supabase.from('expenses').delete().eq('id', deleteConfirm.expenseId);
+            if (error) throw error;
+            setDeleteConfirm({ isOpen: false, expenseId: null });
+            fetchDashboardData();
+        } catch (error: any) {
+            alert("Delete failed: " + error.message);
+        }
+    };
 
     if (loading) {
         return (
@@ -122,6 +174,17 @@ export default function DashboardPage() {
 
     return (
         <div className="px-1 md:px-8 py-4 md:py-8 space-y-6 md:space-y-10 pb-32 md:pb-10 text-foreground">
+            <PushPermissionPrompt />
+            <ConfirmDialog
+                isOpen={deleteConfirm.isOpen}
+                title="Delete Expense?"
+                message="This will permanently delete this expense and update all balances. This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                type="danger"
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteConfirm({ isOpen: false, expenseId: null })}
+            />
             {/* Top Bar */}
             <div className="flex justify-between items-center px-2 md:px-0">
                 <div className="flex items-center gap-6">
@@ -132,10 +195,16 @@ export default function DashboardPage() {
                         <h1 className="text-xl md:text-3xl font-bold font-poppins text-slate-900 dark:text-white leading-none">Dashboard</h1>
                         <div className="flex items-center gap-2 mt-1">
                             <p className="text-foreground/40 text-xs md:text-sm font-medium truncate max-w-[150px] md:max-w-none">Hello, {user?.first_name} 👋</p>
-                            <button onClick={() => {
-                                localStorage.clear();
-                                window.location.reload();
-                            }} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors opacity-20" title="Clear Cache">
+                            <button onClick={async () => {
+                                if (confirm("Repair app sync? This will clear cache and reload.")) {
+                                    localStorage.clear();
+                                    const registrations = await navigator.serviceWorker.getRegistrations();
+                                    for (let registration of registrations) {
+                                        await registration.unregister();
+                                    }
+                                    window.location.reload();
+                                }
+                            }} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors opacity-20" title="Repair Sync">
                                 <Trash2 size={12} />
                             </button>
                             <button onClick={() => fetchDashboardData()} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors opacity-40">
@@ -188,11 +257,14 @@ export default function DashboardPage() {
                             <ArrowUpRight size={24} />
                         </div>
                         <div className="space-y-1">
-                            <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest">Coming In</p>
+                            <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest">Incoming (Owed to you)</p>
                             <p className="text-2xl md:text-3xl font-bold text-success font-poppins">₹{stats.incoming.toLocaleString()}</p>
+                            {stats.incoming === 0 && groups.length > 0 && groups.some(g => g.member_count === 1) && (
+                                <p className="text-[8px] text-foreground/20 font-bold uppercase italic">Add friends to see splits</p>
+                            )}
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-slate-800 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] card-shadow border border-slate-50 dark:border-slate-800 flex flex-col justify-between opacity-50 relative overflow-hidden group">
+                    <div className="bg-white dark:bg-slate-800 p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] card-shadow border border-slate-100 dark:border-slate-800 flex flex-col justify-between opacity-50 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                             <ArrowDownLeft size={64} />
                         </div>
@@ -200,8 +272,11 @@ export default function DashboardPage() {
                             <ArrowDownLeft size={24} />
                         </div>
                         <div className="space-y-1">
-                            <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest">Going Out</p>
+                            <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest">Outgoing (You owe)</p>
                             <p className="text-2xl md:text-3xl font-bold text-danger font-poppins">₹{stats.outgoing.toLocaleString()}</p>
+                            {stats.outgoing === 0 && groups.length > 0 && (
+                                <p className="text-[8px] text-foreground/20 font-bold uppercase italic">No debts found ✨</p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -257,11 +332,19 @@ export default function DashboardPage() {
                                         {group.total_expenses > 0 ? 'Active History' : 'New Group'}
                                     </p>
                                     <div className="flex -space-x-2.5">
-                                        {[1, 2].map((i) => (
-                                            <div key={i} className="w-7 h-7 rounded-full border-2 border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-[10px] font-bold text-foreground/10 italic">
-                                                ?
+                                        {(group.members || []).slice(0, 3).map((m: any, i: number) => (
+                                            <div key={i} className="w-7 h-7 rounded-full border-2 border-white dark:border-slate-800 bg-slate-100 dark:bg-slate-900 overflow-hidden shadow-sm">
+                                                <img
+                                                    src={m?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m?.first_name || 'User'}`}
+                                                    className="w-full h-full object-cover"
+                                                />
                                             </div>
                                         ))}
+                                        {group.member_count > 3 && (
+                                            <div className="w-7 h-7 rounded-full border-2 border-white dark:border-slate-800 bg-slate-800 text-white flex items-center justify-center text-[8px] font-bold">
+                                                +{group.member_count - 3}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </Link>
@@ -276,6 +359,68 @@ export default function DashboardPage() {
                     </Link>
                 </div>
             </div>
+
+            {/* Recent Expenses Section */}
+            {recentExpenses.length > 0 && (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-end px-2 md:px-0">
+                        <div className="space-y-1">
+                            <h2 className="text-2xl font-bold font-poppins text-slate-900 dark:text-white">Recent Expenses</h2>
+                            <p className="text-foreground/40 text-xs font-medium">Your latest transactions</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {recentExpenses.map((expense) => {
+                            const isPaidByUser = expense.paid_by === user?.id;
+                            return (
+                            <div key={expense.id} className="bg-white dark:bg-slate-800 p-4 md:p-5 rounded-3xl card-shadow border border-slate-100 dark:border-slate-700 flex items-center justify-between group hover:border-primary/40 transition-all mx-1 md:mx-0">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-slate-50 dark:bg-slate-900 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
+                                        <Receipt size={24} className="text-primary" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h3 className="font-bold text-sm md:text-base text-slate-900 dark:text-white">{expense.description}</h3>
+                                        <div className="flex items-center gap-2">
+                                            <img
+                                                src={expense.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${expense.profiles?.first_name || 'User'}`}
+                                                className="w-4 h-4 rounded-full"
+                                            />
+                                            <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest">
+                                                {expense.profiles?.full_name || 'Unknown'} • {expense.groups?.name || 'Group'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="text-right">
+                                        <p className="text-lg md:text-xl font-bold font-poppins text-primary">₹{(expense.amount || 0).toLocaleString()}</p>
+                                        <p className="text-[10px] text-foreground/40 font-black uppercase">{new Date(expense.created_at).toLocaleDateString()}</p>
+                                    </div>
+                                    {isPaidByUser && (
+                                        <div className="flex gap-1 border-l border-slate-100 dark:border-slate-700 pl-3">
+                                            <Link
+                                                href={`/edit-expense/${expense.id}`}
+                                                className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
+                                                title="Edit"
+                                            >
+                                                <Edit2 size={16} />
+                                            </Link>
+                                            <button
+                                                onClick={() => handleDeleteExpense(expense.id)}
+                                                className="p-2 text-slate-400 hover:text-danger hover:bg-danger/10 rounded-xl transition-all"
+                                                title="Delete"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )})}
+                    </div>
+                </div>
+            )}
 
             {/* Quick Insights (Placeholder) */}
             <div className="bg-gradient-to-r from-secondary to-primary p-10 rounded-[3rem] text-white card-shadow flex items-center justify-between overflow-hidden relative shadow-2xl shadow-primary/20">
