@@ -1,6 +1,6 @@
 "use client";
 
-import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, MoreHorizontal, Users as UsersIcon, BarChart3, Loader2, RotateCw } from "lucide-react";
+import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, MoreHorizontal, Users as UsersIcon, BarChart3, Loader2, RotateCw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
@@ -10,73 +10,89 @@ export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
     const [groups, setGroups] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({ incoming: 0, outgoing: 0, net: 0 });
+    const [stats, setStats] = useState({ incoming: 0, outgoing: 0, net: 0, totalSpent: 0 });
 
     const fetchDashboardData = async () => {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        try {
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            if (!authUser) {
+                setLoading(false);
+                return;
+            }
 
-        if (authUser) {
-            // Fetch Profile
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', authUser.id)
-                .single();
+            // Parallel fetching for speed and independence
+            const [profileRes, groupsRes, expensesRes, splitsRes, membersRes] = await Promise.all([
+                supabase.from('profiles').select('*').eq('id', authUser.id).single(),
+                supabase.from('groups').select('*').order('created_at', { ascending: false }),
+                supabase.from('expenses').select('*'),
+                supabase.from('expense_splits').select('*'),
+                supabase.from('group_members').select('group_id')
+            ]);
 
+            // 1. Handle User Profile
+            const profile = profileRes.data;
             const firstName = profile?.first_name || authUser.user_metadata?.first_name || authUser.email?.split('@')[0];
             setUser({ ...authUser, ...profile, first_name: firstName });
 
-            // Fetch Groups
-            const { data: groupsData } = await supabase
-                .from('groups')
-                .select(`
-                    *,
-                    members:group_members(count)
-                `)
-                .order('created_at', { ascending: false });
+            // 2. Handle Expenses & Stats (Crucial Fix: Use empty arrays as fallback)
+            const expenses = expensesRes.data || [];
+            const splits = splitsRes.data || [];
+            const groupsData = groupsRes.data || [];
+            const memberData = membersRes.data || [];
 
-            if (groupsData) setGroups(groupsData);
+            console.log(`Fetched: ${expenses.length} expenses, ${splits.length} splits, ${groupsData.length} groups`);
 
-            // Fetch all expenses for user's groups to calculate balance
-            const { data: expenses } = await supabase
-                .from('expenses')
-                .select('id, amount, paid_by, group_id');
+            let incoming = 0;
+            let outgoing = 0;
+            let totalSpent = 0;
 
-            const { data: splits } = await supabase
-                .from('expense_splits')
-                .select('expense_id, user_id, amount');
+            expenses.forEach(exp => {
+                if (exp.paid_by === authUser.id) {
+                    totalSpent += Number(exp.amount);
+                }
 
-            if (expenses && splits) {
-                let incoming = 0; // Money others owe me
-                let outgoing = 0; // Money I owe others
+                const expSplits = splits.filter(s => s.expense_id === exp.id);
 
-                expenses.forEach(exp => {
-                    const expSplits = splits.filter(s => s.expense_id === exp.id);
-
-                    if (exp.paid_by === authUser.id) {
-                        // I paid, others owe their shares
-                        expSplits.forEach(s => {
-                            if (s.user_id !== authUser.id) {
-                                incoming += Number(s.amount);
-                            }
-                        });
-                    } else {
-                        // Someone else paid, I might owe a share
-                        const mySplit = expSplits.find(s => s.user_id === authUser.id);
-                        if (mySplit) {
-                            outgoing += Number(mySplit.amount);
+                if (exp.paid_by === authUser.id) {
+                    expSplits.forEach(s => {
+                        if (s.user_id !== authUser.id) {
+                            incoming += Number(s.amount);
                         }
+                    });
+                } else {
+                    const mySplit = expSplits.find(s => s.user_id === authUser.id);
+                    if (mySplit) {
+                        outgoing += Number(mySplit.amount);
                     }
-                });
+                }
+            });
 
-                setStats({
-                    incoming,
-                    outgoing,
-                    net: incoming - outgoing
-                });
-            }
+            // 3. Update Groups with Totals
+            const groupsWithTotals = groupsData.map(g => {
+                const groupExpenses = expenses.filter(e => e.group_id === g.id);
+                const groupTotal = groupExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+                const mCount = memberData.filter(m => m.group_id === g.id).length || 0;
+                return {
+                    ...g,
+                    total_expenses: groupTotal,
+                    expense_count: groupExpenses.length,
+                    member_count: mCount
+                };
+            });
+
+            setGroups(groupsWithTotals);
+            setStats({
+                incoming,
+                outgoing,
+                net: incoming - outgoing,
+                totalSpent
+            });
+
+        } catch (err) {
+            console.error("Dashboard Fetch Error:", err);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     useEffect(() => {
@@ -115,7 +131,13 @@ export default function DashboardPage() {
                     <div>
                         <h1 className="text-xl md:text-3xl font-bold font-poppins text-slate-900 dark:text-white leading-none">Dashboard</h1>
                         <div className="flex items-center gap-2 mt-1">
-                            <p className="text-foreground/40 text-xs md:text-sm font-medium">Hello, {user?.first_name} 👋</p>
+                            <p className="text-foreground/40 text-xs md:text-sm font-medium truncate max-w-[150px] md:max-w-none">Hello, {user?.first_name} 👋</p>
+                            <button onClick={() => {
+                                localStorage.clear();
+                                window.location.reload();
+                            }} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors opacity-20" title="Clear Cache">
+                                <Trash2 size={12} />
+                            </button>
                             <button onClick={() => fetchDashboardData()} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors opacity-40">
                                 <RotateCw size={14} />
                             </button>
@@ -132,7 +154,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Balance Card */}
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-6 overflow-hidden md:overflow-visible">
                 <div className="bg-primary p-6 md:p-8 rounded-3xl md:rounded-[3rem] text-white card-shadow relative overflow-hidden group shadow-2xl shadow-primary/30 mx-1 md:mx-0">
                     <div className="absolute top-[-10%] right-[-10%] w-48 h-48 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700" />
                     <div className="relative z-10 flex flex-col h-full justify-between gap-8">
@@ -143,8 +165,8 @@ export default function DashboardPage() {
                             <span className="bg-white/20 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest backdrop-blur-md">Total Balance</span>
                         </div>
                         <div>
-                            <p className="text-white/70 text-[10px] mb-1 uppercase tracking-[0.2em] font-black">Net Balance</p>
-                            <h2 className="text-4xl md:text-6xl font-bold font-poppins">₹{stats.net.toLocaleString()}</h2>
+                            <p className="text-white/70 text-[10px] mb-1 uppercase tracking-[0.2em] font-black">Gross Spending</p>
+                            <h2 className="text-4xl md:text-6xl font-bold font-poppins text-white">₹{stats.totalSpent.toLocaleString()}</h2>
                         </div>
                         <div className="grid grid-cols-2 gap-3 md:gap-4">
                             <Link href="/add-expense" className="bg-white text-primary py-3 md:py-4.5 rounded-2xl md:rounded-[1.5rem] font-bold flex items-center justify-center gap-2 hover:bg-slate-50 transition-all active:scale-95 shadow-lg text-xs md:text-base">
@@ -222,13 +244,17 @@ export default function DashboardPage() {
                                     </button>
                                 </div>
                                 <h3 className="text-xl font-bold mb-1 font-poppins text-slate-900 dark:text-white truncate">{group.name}</h3>
-                                <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest mb-6">
-                                    {group.members?.[0]?.count || 1} members attached
+                                <p className="text-foreground/30 text-[10px] font-black uppercase tracking-widest mb-4">
+                                    {group.expense_count || 0} Records Found • {group.member_count || 0} Members
                                 </p>
+                                <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 mb-6">
+                                    <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-wider mb-1">Group Total</p>
+                                    <p className="text-lg font-bold text-primary font-poppins">₹{(group.total_expenses || 0).toLocaleString()}</p>
+                                </div>
 
                                 <div className="pt-5 border-t border-slate-50 dark:border-slate-800 flex justify-between items-center group-hover:border-primary/10 transition-colors">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-foreground/20">
-                                        Activity Detected
+                                        {group.total_expenses > 0 ? 'Active History' : 'New Group'}
                                     </p>
                                     <div className="flex -space-x-2.5">
                                         {[1, 2].map((i) => (
@@ -256,8 +282,15 @@ export default function DashboardPage() {
                 <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl opacity-50" />
                 <div className="relative z-10 space-y-3">
                     <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.3em]">Smart Insight Engine ✨</p>
-                    <h3 className="text-2xl font-bold font-poppins">Ready to settle up?</h3>
-                    <p className="text-white/80 text-sm max-w-md">Your spending habits will appear here once you record your first group expense.</p>
+                    <h3 className="text-2xl font-bold font-poppins">
+                        {stats.totalSpent > 0 ? "Great tracking so far!" : "Ready to settle up?"}
+                    </h3>
+                    <p className="text-white/80 text-sm max-w-md">
+                        {stats.totalSpent > 0
+                            ? `You've recorded ₹${stats.totalSpent.toLocaleString()} in shared expenses across ${groups.length} groups.`
+                            : "Your spending habits will appear here once you record your first group expense."
+                        }
+                    </p>
                 </div>
                 <div className="hidden lg:block relative z-10 opacity-20">
                     <BarChart3 size={100} />

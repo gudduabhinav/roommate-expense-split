@@ -18,15 +18,33 @@ export default function GroupsPage() {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (user) {
-                const { data, error } = await supabase
+                const { data: groupsData, error } = await supabase
                     .from('groups')
-                    .select(`
-                        *,
-                        members:group_members(count)
-                    `)
+                    .select('*')
                     .order('created_at', { ascending: false });
 
-                if (data) setGroups(data);
+                if (groupsData) {
+                    // Fetch expenses for these groups to calculate totals
+                    const groupIds = groupsData.map(g => g.id);
+                    const { data: expensesData } = await supabase
+                        .from('expenses')
+                        .select('group_id, amount')
+                        .in('group_id', groupIds);
+
+                    const { data: membersCount } = await supabase
+                        .from('group_members')
+                        .select('group_id');
+
+                    const groupsWithTotals = groupsData.map(g => {
+                        const total = expensesData
+                            ?.filter(e => e.group_id === g.id)
+                            .reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+                        const mCount = membersCount?.filter(m => m.group_id === g.id).length || 0;
+                        return { ...g, total, member_count: mCount };
+                    });
+
+                    setGroups(groupsWithTotals);
+                }
             }
             setLoading(false);
         }
@@ -151,7 +169,7 @@ export default function GroupsPage() {
                                                 {group.category || 'General'}
                                             </span>
                                             <span className="text-[10px] text-foreground/30 font-medium">
-                                                • {group.members?.[0]?.count || 0} members
+                                                • {group.member_count || 0} members
                                             </span>
                                         </div>
                                     </div>

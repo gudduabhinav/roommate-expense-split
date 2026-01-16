@@ -398,7 +398,7 @@ export default function GroupDetailPage() {
             )}
 
             {/* Header section */}
-            <div className="bg-gradient-to-br from-primary to-secondary p-4 md:p-12 pb-24 text-white relative h-80 md:h-72 shadow-2xl">
+            <div className="bg-gradient-to-br from-primary to-secondary p-4 md:p-12 pb-28 md:pb-24 text-white relative min-h-[380px] md:min-h-[300px] shadow-2xl overflow-hidden">
                 <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
 
                 {/* Top Bar with High Z-Index to overlap Balance Card if dropdown opens */}
@@ -465,7 +465,7 @@ export default function GroupDetailPage() {
                             </span>
                             <span className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] font-mono">CODE: {group.invite_code}</span>
                         </div>
-                        <h1 className="text-3xl md:text-5xl font-bold font-poppins tracking-tight">{group.name}</h1>
+                        <h1 className="text-3xl md:text-5xl font-bold font-poppins tracking-tight break-words line-clamp-2">{group.name}</h1>
                         <div className="flex items-center gap-3">
                             <div className="flex -space-x-3">
                                 {members.slice(0, 5).map((m, i) => (
@@ -484,12 +484,12 @@ export default function GroupDetailPage() {
                             </p>
                         </div>
                     </div>
-                    <div className="flex flex-col md:flex-row gap-4">
-                        <div className="bg-white/10 backdrop-blur-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 border border-white/20 shadow-2xl flex-grow">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 w-full md:w-auto">
+                        <div className="bg-white/10 backdrop-blur-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 border border-white/20 shadow-2xl">
                             <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Group Total</p>
                             <p className="text-2xl md:text-4xl font-bold font-poppins">₹{(groupTotal || 0).toLocaleString()}</p>
                         </div>
-                        <div className="bg-white/10 backdrop-blur-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 border border-white/20 shadow-2xl flex-grow">
+                        <div className="bg-white/10 backdrop-blur-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 border border-white/20 shadow-2xl">
                             <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Your Balance</p>
                             <p className={`text-2xl md:text-4xl font-bold font-poppins ${userBalance > 0 ? 'text-green-400' : userBalance < 0 ? 'text-red-400' : 'text-white'}`}>
                                 {userBalance > 0 ? '+' : ''}₹{Math.abs(userBalance).toLocaleString()}
@@ -499,7 +499,7 @@ export default function GroupDetailPage() {
                 </div>
             </div>
 
-            <div className="max-w-5xl mx-auto px-2 md:px-4 -mt-8 space-y-10 relative z-10">
+            <div className="max-w-5xl mx-auto px-1 md:px-4 -mt-10 md:-mt-8 space-y-8 md:space-y-10 relative z-10">
                 {/* Members list & Add Button */}
                 <div className="flex gap-4 overflow-x-auto pb-4 px-1 hide-scrollbar">
                     {members.map((member) => (
